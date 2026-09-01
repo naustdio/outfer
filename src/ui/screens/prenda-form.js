@@ -20,9 +20,10 @@ export function validatePrendaFormValues(values) {
 }
 
 // Reads a submitted <form> into the plain-object shape
-// validatePrendaFormValues()/the repos expect. Not unit tested directly
-// (DOM-only glue, no branching) -- covered indirectly once the form is
-// exercised manually per design.md's Testing Strategy table.
+// validatePrendaFormValues()/the repos expect. Covered by the DOM tests in
+// tests/unit/ui/prenda-form.test.js via renderPrendaForm's submit handler
+// (jsdom environment) -- every key here must correspond to a control
+// renderPrendaForm actually mounts, or the value silently degrades to null.
 export function readPrendaFormValues(form) {
   const data = new FormData(form);
   return {
@@ -79,9 +80,10 @@ function checkboxGroup(name, options, valueOf, labelOf, selected = []) {
 // Mounts the create/edit garment form. Submit reads the DOM, sanitizes +
 // validates via validatePrendaFormValues() (unit tested above), and only
 // calls the repo when valid -- matching garment-catalog's "reject a 4th
-// color" / "flagging damage requires a damage type" scenarios. Not unit
-// tested itself (DOM-only glue over already-tested pure functions) per
-// design.md's Testing Strategy table.
+// color" / "flagging damage requires a damage type" scenarios. Unit tested
+// via jsdom in tests/unit/ui/prenda-form.test.js: every field mounted here
+// must also be read back in readPrendaFormValues(), or an edit that leaves
+// that field untouched will silently overwrite it with null.
 export function renderPrendaForm(container, { prenda = null, coloresCatalog = [], tiposPrendaCatalog = [], prendasRepo, onSaved, onCancel }) {
   container.innerHTML = "";
 
@@ -174,6 +176,13 @@ export function renderPrendaForm(container, { prenda = null, coloresCatalog = []
     (d) => d,
     prenda?.tipo_dano ?? [],
   );
+
+  const detalleDanoInput = document.createElement("input");
+  detalleDanoInput.name = "detalle_dano";
+  detalleDanoInput.placeholder = "Detalle del dano";
+  detalleDanoInput.value = prenda?.detalle_dano ?? "";
+  danoField.append(detalleDanoInput);
+
   danoField.hidden = !necesitaReparacionInput.checked;
   necesitaReparacionInput.addEventListener("change", () => {
     danoField.hidden = !necesitaReparacionInput.checked;
