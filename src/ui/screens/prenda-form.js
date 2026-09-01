@@ -34,7 +34,9 @@ export function readPrendaFormValues(form) {
     fecha_ingreso: data.get("fecha_ingreso") || null,
     cantidad: data.get("cantidad") ? Number(data.get("cantidad")) : undefined,
     precio: data.get("precio") ? Number(data.get("precio")) : undefined,
+    temporada: data.getAll("temporada"),
     favorito: data.get("favorito") === "on",
+    estado: data.get("estado") || undefined,
     necesita_reparacion: data.get("necesita_reparacion") === "on",
     tipo_dano: data.getAll("tipo_dano"),
     detalle_dano: data.get("detalle_dano") || null,
@@ -50,6 +52,13 @@ const DANO_OPTIONS = [
   "Desgaste",
   "Otro",
 ];
+
+// garment-catalog "Garment Fields": estado_prenda enum (0001_types_and_lookups.sql).
+const ESTADO_OPTIONS = ["En closet", "Por comprar"];
+
+// garment-catalog "Garment Fields": temporada is multi-select; temporada[]
+// enum (0001_types_and_lookups.sql).
+const TEMPORADA_OPTIONS = ["Primavera", "Verano", "Otono", "Invierno", "Atemporal"];
 
 function checkboxGroup(name, options, valueOf, labelOf, selected = []) {
   const fieldset = document.createElement("fieldset");
@@ -112,6 +121,11 @@ export function renderPrendaForm(container, { prenda = null, coloresCatalog = []
     prenda?.colores ?? [],
   );
 
+  const tallaInput = document.createElement("input");
+  tallaInput.name = "talla";
+  tallaInput.placeholder = "Talla";
+  tallaInput.value = prenda?.talla ?? "";
+
   const fechaInput = document.createElement("input");
   fechaInput.type = "date";
   fechaInput.name = "fecha_ingreso";
@@ -122,6 +136,31 @@ export function renderPrendaForm(container, { prenda = null, coloresCatalog = []
   cantidadInput.name = "cantidad";
   cantidadInput.min = "1";
   cantidadInput.value = prenda?.cantidad ?? 1;
+
+  const temporadaField = checkboxGroup(
+    "temporada",
+    TEMPORADA_OPTIONS,
+    (t) => t,
+    (t) => t,
+    prenda?.temporada ?? [],
+  );
+
+  const estadoSelect = document.createElement("select");
+  estadoSelect.name = "estado";
+  for (const estado of ESTADO_OPTIONS) {
+    const option = document.createElement("option");
+    option.value = estado;
+    option.textContent = estado;
+    option.selected = (prenda?.estado ?? ESTADO_OPTIONS[0]) === estado;
+    estadoSelect.append(option);
+  }
+
+  const favoritoLabel = document.createElement("label");
+  const favoritoInput = document.createElement("input");
+  favoritoInput.type = "checkbox";
+  favoritoInput.name = "favorito";
+  favoritoInput.checked = prenda?.favorito ?? false;
+  favoritoLabel.append(favoritoInput, document.createTextNode("Favorito"));
 
   const necesitaReparacionInput = document.createElement("input");
   necesitaReparacionInput.type = "checkbox";
@@ -157,8 +196,12 @@ export function renderPrendaForm(container, { prenda = null, coloresCatalog = []
     categoriaSelect,
     tipoSelect,
     coloresField,
+    tallaInput,
     fechaInput,
     cantidadInput,
+    temporadaField,
+    estadoSelect,
+    favoritoLabel,
     necesitaReparacionInput,
     danoField,
     errorList,
