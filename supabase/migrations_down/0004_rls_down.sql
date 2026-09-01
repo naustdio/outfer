@@ -17,3 +17,13 @@ alter table outfit_prenda disable row level security;
 alter table tip           disable row level security;
 alter table outfit        disable row level security;
 alter table prenda        disable row level security;
+
+-- RLS was the ONLY thing filtering `anon` down to 0 rows on these tables --
+-- the SELECT grants themselves (added in 0001/0002/0003) are independent of
+-- RLS and survive `disable row level security` untouched. Revoke them here
+-- too, so this rollback can never run alone and leave every table openly
+-- readable by anon. If 0001-0003's own down scripts already dropped these
+-- tables, these revokes are no-ops (the objects no longer exist).
+revoke select on colores, tipo_prenda from anon;
+revoke select on prenda, outfit, tip from anon;
+revoke select on outfit_prenda, prenda_tip, outfit_tip from anon;
