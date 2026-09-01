@@ -150,3 +150,68 @@ describe("renderPrendaForm - edit does not destroy unrelated fields", () => {
     expect(patch.temporada).toEqual(["Verano"]);
   });
 });
+
+// verify-report-pr2.md CRITICAL-1-residual: renderPrendaForm mounts no
+// control named detalle_dano, yet readPrendaFormValues unconditionally
+// emits detalle_dano: data.get("detalle_dano") || null, so a damaged
+// garment's detail is silently wiped to null on every edit that leaves
+// necesita_reparacion true (sanitizePrendaFormValues only clears it
+// intentionally when necesita_reparacion is false).
+describe("renderPrendaForm - edit does not destroy detalle_dano", () => {
+  const damagedPrenda = {
+    id: "p2",
+    nombre: "Camisa dañada",
+    categoria: "Superior",
+    tipo_prenda_id: "tp1",
+    colores: ["Azul"],
+    talla: "M",
+    fecha_ingreso: "2026-01-01",
+    cantidad: 1,
+    temporada: ["Verano"],
+    favorito: false,
+    estado: "En closet",
+    necesita_reparacion: true,
+    tipo_dano: ["Mancha"],
+    detalle_dano: "mancha en manga",
+  };
+
+  function mountEditForm() {
+    const container = document.createElement("div");
+    let capturedPatch;
+    const prendasRepo = {
+      update: (id, patch) => {
+        capturedPatch = patch;
+        return Promise.resolve({ ...damagedPrenda, ...patch });
+      },
+    };
+    renderPrendaForm(container, {
+      prenda: damagedPrenda,
+      coloresCatalog: [{ valor: "Azul", nombre: "Azul" }],
+      tiposPrendaCatalog: [{ id: "tp1", nombre: "Camisa" }],
+      prendasRepo,
+    });
+    return { container, getCapturedPatch: () => capturedPatch };
+  }
+
+  it("mounts a detalle_dano input pre-filled with the garment's current value", () => {
+    const { container } = mountEditForm();
+    const detalleInput = container.querySelector('[name="detalle_dano"]');
+    expect(detalleInput).not.toBeNull();
+    expect(detalleInput.value).toBe("mancha en manga");
+  });
+
+  it("preserves detalle_dano when only nombre changes and necesita_reparacion stays true", async () => {
+    const { container, getCapturedPatch } = mountEditForm();
+
+    const nombreInput = container.querySelector('input[name="nombre"]');
+    nombreInput.value = "Camisa dañada editada";
+
+    const form = container.querySelector("form");
+    form.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const patch = getCapturedPatch();
+    expect(patch.detalle_dano).toBe("mancha en manga");
+  });
+});
