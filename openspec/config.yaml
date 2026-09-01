@@ -1,0 +1,57 @@
+schema: spec-driven
+
+context: |
+  Project: closet-app (greenfield, no code yet as of 2026-09-01).
+  Frontend: Vanilla JavaScript + GSAP animations + PWA (manifest + service
+    worker), static hosting.
+  Backend: Node.js (Express or Fastify) on a single Hostinger Node slot,
+    dedicated mainly to an AI image pipeline.
+  Data/Storage/Auth: Supabase (Postgres + Storage + Auth), queried directly
+    from the frontend via its JS SDK.
+  AI layer: OpenRouter routing to Gemini 2.5 Flash (vision/detection) and
+    Gemini 2.5 Flash Image "nano banana" (image generation).
+  Testing: strict TDD enabled; no test runner installed yet — see
+    testing capabilities below for the recommended convention.
+
+strict_tdd: true
+
+testing:
+  status: not_yet_installed
+  recommended_backend_runner: vitest
+  recommended_backend_command: "npx vitest run"
+  recommended_frontend_runner: vitest (jsdom) for unit/DOM logic; Playwright for PWA/E2E once UI exists
+  recommended_frontend_command: "npx vitest run --environment jsdom"
+  recommended_e2e_runner: playwright
+  recommended_e2e_command: "npx playwright test"
+  coverage_tool: "vitest --coverage (v8 provider)"
+  notes: >
+    No package.json exists yet. First implementation task in any change
+    MUST scaffold package.json + Vitest config (and Playwright config once
+    frontend routes exist) before any RED test is written, per strict TDD.
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - Call out third-party dependencies (Supabase, OpenRouter, Hostinger deploy target) explicitly
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for AI pipeline flows (frontend -> Supabase -> Node backend -> OpenRouter/Gemini)
+    - Document architecture decisions with rationale, especially the frontend-direct-to-Supabase vs backend-mediated split
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+    - First task of the first change MUST scaffold the test runner (Vitest) before any feature code, per strict TDD
+  apply:
+    guidelines:
+      - Follow RED-GREEN-REFACTOR for every task with test coverage
+      - Keep frontend vanilla JS (no framework) unless a change proposal explicitly revisits this decision
+    tdd: true
+    test_command: "npx vitest run"
+  verify:
+    test_command: "npx vitest run"
+    build_command: ""
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas
