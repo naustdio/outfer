@@ -4,19 +4,21 @@
 // TOKEN_REFRESH_FAILED resets the router and re-renders login).
 //
 // `router` is an injected interface ({ start(), navigate(path), reset() })
-// -- design.md lists ui/router.js in the target file tree, but no task in
-// tasks.md creates a concrete router yet (Phases 5-6 only cover auth +
-// garment CRUD screens), so app.js depends on the shape, not an
-// implementation, to stay unblocked. Flagged in apply-progress for
-// sdd-verify: a concrete router.js still needs a task before app.js can
-// actually run end to end in a browser.
+// implemented by src/ui/router.js and wired up by src/main.js (the real
+// browser entry point, added in Phase 6.5 to close verify-report-pr2's
+// CRITICAL-3: no task ever created a concrete router or HTML entry point,
+// so the app could not actually load in a browser).
+//
+// `client` can be injected directly (src/main.js does this so router routes
+// and createApp share exactly one Supabase client instance); otherwise one
+// is built from supabaseUrl/supabaseAnonKey as before.
 import { createSupabaseClient } from "./data/supabaseClient.js";
 import { makeAuth } from "./data/auth.js";
 import { createSessionGate } from "./ui/session-gate.js";
 import { renderLogin } from "./ui/screens/login.js";
 
-export function createApp({ supabaseUrl, supabaseAnonKey, root, router }) {
-  const client = createSupabaseClient(supabaseUrl, supabaseAnonKey);
+export function createApp({ supabaseUrl, supabaseAnonKey, root, router, client: injectedClient }) {
+  const client = injectedClient ?? createSupabaseClient(supabaseUrl, supabaseAnonKey);
   const auth = makeAuth(client);
   const gate = createSessionGate({ auth, router });
 
