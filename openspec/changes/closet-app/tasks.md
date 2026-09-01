@@ -70,6 +70,15 @@ Chain strategy: pending
 - [x] 6.3 (fix pass, post-verify) RED+GREEN `tests/unit/ui/prenda-form.test.js` DOM tests + `src/ui/screens/prenda-form.js` — mount `talla`/`temporada`/`estado`/`favorito` inputs and add them to `readPrendaFormValues`, closing verify-report-pr2.md CRITICAL-1 (silent data loss on edit) and CRITICAL-2 (unsettable spec-required fields)
 - [x] 6.4 (fix pass #2, post-re-verify) RED+GREEN `tests/unit/ui/prenda-form.test.js` DOM tests + `src/ui/screens/prenda-form.js` — mount `detalle_dano` input in the damage fieldset, pre-fill on edit, refresh stale "untested"/"no branching" comments, closing verify-report-pr2.md CRITICAL-1-residual (silent data loss of `detalle_dano` on edit)
 
+## Phase 6.5: Router & Entry Point (PR2.5 — closes verify-report-pr2.md CRITICAL-3)
+
+Neither PR1 nor PR2 ever created `ui/router.js` or an HTML entry point, so the app could not actually load in a browser despite passing tests — flagged CRITICAL across three independent verify passes on PR2. This phase closes that planning gap without adding any new screens/features. `ui/transitions.js` + GSAP transitions (also listed in design.md's target file tree) remain deliberately out of scope here; they land with the visual-design change.
+
+- [x] 6.5.1 RED+GREEN `tests/unit/ui/router.test.js` + `src/ui/router.js` — hash-based router: pure `parseHash`/`compileRoute`/`matchRoute` (path matching, `:param` extraction, route-order precedence) plus `createRouter()` DOM/window wiring (`start`/`navigate`/`reset`/`setGuard`/`redirectToLogin`/`allow`), window injectable for tests
+- [x] 6.5.2 `src/main.js` — real browser entry point: builds the Supabase client + `prendasRepo`/`catalogosRepo`, registers `/prendas`, `/prendas/new`, `/prendas/:id`, `/prendas/:id/edit` routes against the existing screens, wires `session-gate`'s `guard` into the router via `router.setGuard`, calls `createApp(...).boot()`. `src/app.js` extended with an optional `client` param so main.js and `createApp` share one Supabase client instance.
+- [x] 6.5.3 `public/index.html` — HTML shell (`#app` mount container, loads `src/main.js` as an ES module + a gitignored `public/config.js` for runtime Supabase config, template at `public/config.example.js`) — deliberately unstyled, no `app.css` exists yet
+- [x] 6.5.4 `package.json` `dev` script + `scripts/dev-server.mjs` — zero-dependency static file server for local manual verification (no bundler introduced); serves `/src/*` from the repo's `src/` and everything else from `public/`, mirroring the production doc-root layout from design.md's target file tree
+
 ## Phase 7: Outfit CRUD UI + Linking
 
 - [ ] 7.1 RED+GREEN `tests/unit/ui/outfit-link.test.js` — link/unlink triggers `outfit_v` refetch, no client-side recompute
