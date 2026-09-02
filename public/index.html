@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Closet</title>
+    <!--
+      No stylesheet yet: real visual design is a later change (design.md
+      "background_color/theme_color as neutral placeholders pending the
+      later visual-design change"). This shell is deliberately unstyled --
+      Phase 6.5's only job is making the app loadable and navigable.
+      manifest.json / sw.js are Phase 11 (PWA Shell), not linked here yet.
+    -->
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <!--
+      public/config.js is per-deploy and gitignored (see
+      public/config.example.js); it sets window.__CLOSET_APP_CONFIG__
+      before src/main.js reads it. Safe to ship as a plain static file --
+      the Supabase anon key is public by design (design.md: "the anon key
+      is public in a static PWA -- a client-side gate protects nothing";
+      RLS is the real boundary), unlike a service-role key which must
+      never appear here.
+    -->
+    <script src="/config.js"></script>
+    <!--
+      Import map: remaps the bare specifier "@supabase/supabase-js" (used by
+      src/data/supabaseClient.js) to a locally vendored ESM bundle instead of
+      a CDN link, because:
+        1. This PWA needs to eventually work offline (design.md) -- a CDN
+           import map would add a runtime network dependency on every page
+           load, defeating that goal.
+        2. No bundler exists (design.md: vanilla ES modules, no build step),
+           so the bare specifier is otherwise unresolvable in a browser.
+        3. A browser import map can remap only ONE bare specifier per entry,
+           not resolve a whole dependency tree of further bare imports, so
+           the vendored file must be self-contained (see its own header
+           comment for how it was built and verified).
+      Do not swap this back to a CDN URL -- re-vendor
+      public/vendor/supabase-js.esm.js when @supabase/supabase-js is
+      upgraded in package.json instead.
+    -->
+    <script type="importmap">
+      {
+        "imports": {
+          "@supabase/supabase-js": "/vendor/supabase-js.esm.js"
+        }
+      }
+    </script>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
