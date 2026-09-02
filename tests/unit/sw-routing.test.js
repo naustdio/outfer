@@ -8,7 +8,7 @@
 // internally) so this stays a pure function callable from Node; the actual
 // fetch listener in sw.js passes self.location.origin at call time.
 import { describe, it, expect, vi } from "vitest";
-import { shouldHandle, precacheBestEffort } from "../../public/sw.js";
+import { shouldHandle, precacheBestEffort, staleWhileRevalidate } from "../../public/sw.js";
 
 const APP_ORIGIN = "https://closet.example";
 
@@ -87,5 +87,79 @@ describe("precacheBestEffort", () => {
     });
 
     await expect(precacheBestEffort(cache, ["/a", "/b"])).resolves.not.toThrow();
+  });
+});
+
+// verify-report-pr5 CRITICAL-2 (carried over from verify-report-pr4.md): the
+// old cacheFirst() served a cached response forever and never revalidated --
+// a content-only deploy never reached an already-installed PWA user without
+// a manual SHELL_CACHE version bump. staleWhileRevalidate(cache, request,
+// fetcher) replaces it: serve the cached response immediately when present
+// (fast, works offline) while ALSO kicking off a background fetch to update
+// the cache for next time (self-healing on every online visit). `cache` and
+// `fetcher` are injected (same convention as precacheBestEffort's injected
+// `cache`) so this stays testable in plain Node without a real Cache/fetch.
+function fakeResponse(body, { ok = true } = {}) {
+  return {
+    ok,
+    _body: body,
+    clone() {
+      return fakeResponse(body, { ok });
+    },
+  };
+}
+
+describe("staleWhileRevalidate", () => {
+  it("returns the cached response immediately when one exists", async () => {
+    const cached = fakeResponse("cached-shell");
+    const cache = { match: vi.fn().mockResolvedValue(cached), put: vi.fn() };
+    const fetcher = vi.fn().mockResolvedValue(fakeResponse("fresh-shell"));
+
+    const { response } = await staleWhileRevalidate(cache, "/src/main.js", fetcher);
+
+    expect(response).toBe(cached);
+  });
+
+  it("kicks off a background fetch and updates the cache for next time when cached", async () => {
+    const cached = fakeResponse("cached-shell");
+    const fresh = fakeResponse("fresh-shell");
+    const cache = { match: vi.fn().mockResolvedValue(cached), put: vi.fn() };
+    const fetcher = vi.fn().mockResolvedValue(fresh);
+
+    const { response, revalidate } = await staleWhileRevalidate(cache, "/src/main.js", fetcher);
+    await revalidate;
+
+    expect(response).toBe(cached);
+    expect(fetcher).toHaveBeenCalledWith("/src/main.js");
+    expect(cache.put).toHaveBeenCalledWith("/src/main.js", expect.anything());
+  });
+
+  it("a failed background revalidation never rejects and never breaks the already-served cached response", async () => {
+    const cached = fakeResponse("cached-shell");
+    const cache = { match: vi.fn().mockResolvedValue(cached), put: vi.fn() };
+    const fetcher = vi.fn().mockRejectedValue(new Error("offline"));
+
+    const { response, revalidate } = await staleWhileRevalidate(cache, "/src/main.js", fetcher);
+
+    expect(response).toBe(cached);
+    await expect(revalidate).resolves.not.toThrow();
+  });
+
+  it("falls back to the network and caches the response when nothing is cached yet", async () => {
+    const fresh = fakeResponse("fresh-shell");
+    const cache = { match: vi.fn().mockResolvedValue(undefined), put: vi.fn() };
+    const fetcher = vi.fn().mockResolvedValue(fresh);
+
+    const { response } = await staleWhileRevalidate(cache, "/screens/new-screen.js", fetcher);
+
+    expect(response).toBe(fresh);
+    expect(cache.put).toHaveBeenCalledWith("/screens/new-screen.js", expect.anything());
+  });
+
+  it("propagates a network failure when nothing is cached (true cold cache + offline)", async () => {
+    const cache = { match: vi.fn().mockResolvedValue(undefined), put: vi.fn() };
+    const fetcher = vi.fn().mockRejectedValue(new Error("offline"));
+
+    await expect(staleWhileRevalidate(cache, "/screens/new-screen.js", fetcher)).rejects.toThrow("offline");
   });
 });
