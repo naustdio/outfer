@@ -72,20 +72,50 @@ export async function precacheBestEffort(cache, urls) {
   }
 }
 
-async function cacheFirst(request) {
-  const cache = await caches.open(SHELL_CACHE);
+// verify-report-pr5 CRITICAL-2 (carried over from verify-report-pr4.md):
+// the old cacheFirst() served a cached response forever and never
+// revalidated -- once a file was cached, a deployed content update never
+// reached an already-installed PWA user without a human manually bumping
+// SHELL_CACHE's hardcoded "-v1" suffix and remembering to do so on every
+// single deploy. staleWhileRevalidate replaces it: serve the cached
+// response immediately when present (same offline-first speed as before),
+// but ALSO kick off a background fetch that updates the cache for next
+// time whenever the device is online -- self-healing on every online visit
+// instead of requiring a manual version bump. `cache` and `fetcher` are
+// injected (same convention as precacheBestEffort's injected `cache`) so
+// this stays a testable near-pure function in plain Node; see
+// tests/unit/sw-routing.test.js. Returns `{ response, revalidate }` so the
+// real fetch listener can `event.waitUntil(revalidate)` to keep the worker
+// alive long enough for the background update to finish.
+export async function staleWhileRevalidate(cache, request, fetcher) {
   const cached = await cache.match(request);
-  if (cached) return cached;
-  // Not cached yet (e.g. a screen module not in PRECACHE_URLS, visited for
-  // the first time): fetch from the network and store the response for
-  // next time -- this is what lets Phase 10's/Phase 9's newly added screens
-  // become available offline after one online visit, without listing them
-  // here by hand.
-  const response = await fetch(request);
-  if (response.ok) {
-    cache.put(request, response.clone());
+
+  const networkFetch = fetcher(request).then((response) => {
+    if (response && response.ok) {
+      cache.put(request, response.clone());
+    }
+    return response;
+  });
+
+  if (cached) {
+    // Already have something to serve -- a background revalidation
+    // failure (e.g. offline) must never surface anywhere; the cached
+    // response already satisfies this request, and the next online visit
+    // gets another chance to revalidate.
+    return { response: cached, revalidate: networkFetch.catch(() => undefined) };
   }
-  return response;
+
+  // Nothing cached yet (e.g. a screen module not in PRECACHE_URLS, visited
+  // for the first time): this request IS the network request, so a real
+  // failure must propagate -- there is no fallback for a true cold cache
+  // while offline.
+  const response = await networkFetch;
+  return { response, revalidate: Promise.resolve(response) };
+}
+
+async function staleWhileRevalidateFromCache(request) {
+  const cache = await caches.open(SHELL_CACHE);
+  return staleWhileRevalidate(cache, request, fetch);
 }
 
 // Guarded so importing this module in plain Node (tests/unit/sw-routing.
@@ -116,6 +146,11 @@ if (typeof self !== "undefined" && typeof self.addEventListener === "function") 
 
   self.addEventListener("fetch", (event) => {
     if (!shouldHandle(event.request, self.location.origin)) return;
-    event.respondWith(cacheFirst(event.request));
+    event.respondWith(
+      staleWhileRevalidateFromCache(event.request).then(({ response, revalidate }) => {
+        event.waitUntil(revalidate);
+        return response;
+      }),
+    );
   });
 }
