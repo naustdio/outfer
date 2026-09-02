@@ -60,13 +60,15 @@ Chain strategy: pending
 
 ## Phase 5: Auth / Session UI
 
-- [ ] 5.1 RED+GREEN `tests/unit/ui/session-gate.test.js` + `src/ui/session-gate.js` (no session → redirect login)
-- [ ] 5.2 `src/ui/screens/login.js` (email/password) + `src/app.js` boot wiring
+- [x] 5.1 RED+GREEN `tests/unit/ui/session-gate.test.js` + `src/ui/session-gate.js` (no session → redirect login)
+- [x] 5.2 `src/ui/screens/login.js` (email/password) + `src/app.js` boot wiring
 
 ## Phase 6: Garment CRUD UI
 
-- [ ] 6.1 RED+GREEN `tests/unit/ui/prenda-form.test.js` — reject 4th color, reject damage flag without `tipo_dano`
-- [ ] 6.2 `src/ui/screens/prendas-list.js`, `prenda-detail.js`, `prenda-form.js` (create/edit/delete)
+- [x] 6.1 RED+GREEN `tests/unit/ui/prenda-form.test.js` — reject 4th color, reject damage flag without `tipo_dano`
+- [x] 6.2 `src/ui/screens/prendas-list.js`, `prenda-detail.js`, `prenda-form.js` (create/edit/delete)
+- [x] 6.3 (fix pass, post-verify) RED+GREEN `tests/unit/ui/prenda-form.test.js` DOM tests + `src/ui/screens/prenda-form.js` — mount `talla`/`temporada`/`estado`/`favorito` inputs and add them to `readPrendaFormValues`, closing verify-report-pr2.md CRITICAL-1 (silent data loss on edit) and CRITICAL-2 (unsettable spec-required fields)
+- [x] 6.4 (fix pass #2, post-re-verify) RED+GREEN `tests/unit/ui/prenda-form.test.js` DOM tests + `src/ui/screens/prenda-form.js` — mount `detalle_dano` input in the damage fieldset, pre-fill on edit, refresh stale "untested"/"no branching" comments, closing verify-report-pr2.md CRITICAL-1-residual (silent data loss of `detalle_dano` on edit)
 
 ## Phase 7: Outfit CRUD UI + Linking
 
