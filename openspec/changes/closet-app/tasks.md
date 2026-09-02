@@ -109,13 +109,14 @@ Neither PR1 nor PR2 ever created `ui/router.js` or an HTML entry point, so the a
 
 ## Phase 12: RLS Integration Test Suite (`tests/rls/`, requires `SUPABASE_URL`)
 
-- [ ] 12.1 `tests/rls/setup.js` — two clients from the same anon key: one anonymous, one `signInWithPassword`; fail loudly (not silently skip) if `SUPABASE_URL` is set but connection fails
-- [ ] 12.2 `tests/rls/owned-tables.test.js` — for `prenda`/`outfit`/`tip`/`outfit_prenda`/`prenda_tip`/`outfit_tip`: anon SELECT=0 rows, anon INSERT/UPDATE/DELETE fails or affects 0 rows; authenticated owner succeeds on own rows
-- [ ] 12.3 `tests/rls/lookup-tables.test.js` — `colores`/`tipo_prenda`: authenticated SELECT works, anon SELECT=0; `tipo_prenda` authenticated INSERT allowed, UPDATE/DELETE denied
-- [ ] 12.4 `tests/rls/security-invoker-footguns.test.js` — anon query of `outfit_v` returns 0 rows; anon `rpc('search_all')` returns 0 rows
-- [ ] 12.5 `tests/rls/composite-fk-guard.test.js` — seed a second test user; attempt cross-owner links via all 3 join tables; assert FK rejects
-- [ ] 12.6 `tests/rls/derived-values.test.js` — `outfit_v.estado` for 0/all-`En closet`/mixed garments; `nombre_sugerido` distinct+`orden`-ordered; direct `UPDATE prenda SET disponible=...` rejected
-- [ ] 12.7 Note in `.env.local.example` comment: CI MUST set `SUPABASE_URL` or this suite silently skips — run `SUPABASE_URL=... npx vitest run tests/rls` locally before merge
+- [x] 12.1 `tests/rls/setup.js` — two clients from the same anon key: one anonymous, one `signInWithPassword`; fail loudly (not silently skip) if `SUPABASE_URL` is set but connection fails
+- [x] 12.2 `tests/rls/owned-tables.test.js` — for `prenda`/`outfit`/`tip`/`outfit_prenda`/`prenda_tip`/`outfit_tip`: anon SELECT=0 rows, anon INSERT/UPDATE/DELETE fails or affects 0 rows; authenticated owner succeeds on own rows. Extended beyond the literal task text with two-real-users isolation per table (closes verify-report-pr4.md's flagged gap — no runtime proof existed before this PR).
+- [x] 12.3 `tests/rls/lookup-tables.test.js` — `colores`/`tipo_prenda`: authenticated SELECT works, anon SELECT=0; `tipo_prenda` authenticated INSERT allowed, UPDATE/DELETE denied. Confirms `colores`/`tipo_prenda` correctly carry no RLS-owner column (shared vocabulary, not owned data).
+- [x] 12.4 `tests/rls/security-invoker-footguns.test.js` — anon query of `outfit_v` returns 0 rows; anon `rpc('search_all')` returns 0 rows. Also asserts the authenticated-owner positive case so a fully-broken view/RPC can't pass by accident.
+- [x] 12.5 `tests/rls/composite-fk-guard.test.js` — seed a second test user; attempt cross-owner links via all 3 join tables using BOTH the RLS-bypassing service-role client and a real authenticated session; assert FK rejects (`23503`, not an RLS/permission error) in every case.
+- [x] 12.6 `tests/rls/derived-values.test.js` — `outfit_v.estado` for 0/all-`En closet`/mixed garments; `nombre_sugerido` distinct+`orden`-ordered; direct `UPDATE prenda SET disponible=...` rejected. All read through an authenticated (not service-role) client, the real app's access path.
+- [x] 12.7 Note in `.env.local.example` comment: CI MUST set `SUPABASE_URL` or this suite silently skips — run `SUPABASE_URL=... npx vitest run tests/rls` locally before merge. **Found already present** (added opportunistically during an earlier PR, referencing this exact task number) — verified via `git show HEAD:.env.local.example`, no new edit needed.
+- [x] 12.8 (bonus, found while writing 12.3/12.7's fixture cleanup) `supabase/migrations/0006_tipo_prenda_service_role_grant.sql` — fixes a real schema bug the RLS suite's own `afterAll` cleanup exposed: `service_role` had only SELECT+INSERT on `tipo_prenda` (0001 mirrored the intentional `authenticated` append-only restriction onto `service_role` too), so even a service-role admin script could not delete a mis-seeded row. `authenticated` keeps zero update/delete grant unchanged — this only grants `service_role` its own admin-correction capability, independent of RLS (which `service_role` already bypasses via `rolbypassrls`).
 
 ## Key Learnings
 
