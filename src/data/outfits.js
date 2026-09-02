@@ -37,6 +37,17 @@ export function makeOutfitsRepo(client) {
       };
     },
 
+    // garment-catalog "Reverse Lookups on Garment Detail" has a mirror on
+    // the outfit side (styling-tips "each entity's detail view MUST show
+    // the tip") -- outfit-detail.js needs the tip ids linked to this outfit
+    // to render its own reverse-lookup section. Additive alongside
+    // getWithPrendas(), same shape/reasoning as its own header comment.
+    async getLinkedTipIds(id) {
+      const { data, error } = await client.from("outfit_tip").select("tip_id").eq("outfit_id", id);
+      if (error) throw error;
+      return data.map((row) => row.tip_id);
+    },
+
     async create(input) {
       const { data, error } = await client.from("outfit").insert(input).select().single();
       if (error) throw error;

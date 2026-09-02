@@ -28,6 +28,8 @@ import { renderOutfitDetail } from "./ui/screens/outfit-detail.js";
 import { renderOutfitForm } from "./ui/screens/outfit-form.js";
 import { renderTipsList } from "./ui/screens/tips-list.js";
 import { renderTipForm } from "./ui/screens/tip-form.js";
+import { renderSearch } from "./ui/screens/search.js";
+import { makeSearchRepo } from "./data/search.js";
 
 // Runtime config comes from a plain global set by public/config.js (see
 // public/config.example.js), not a bundler env var -- design.md: vanilla ES
@@ -43,6 +45,7 @@ const outfitsRepo = makeOutfitsRepo(client);
 const tipsRepo = makeTipsRepo(client);
 const linksRepo = makeLinksRepo(client);
 const catalogosRepo = makeCatalogosRepo(client);
+const searchRepo = makeSearchRepo(client);
 
 async function loadFormCatalogs() {
   const [coloresCatalog, tiposPrendaCatalog] = await Promise.all([
@@ -92,8 +95,12 @@ const routes = [
       renderPrendaDetail(container, id, {
         prendasRepo,
         catalogosRepo,
+        outfitsRepo,
+        tipsRepo,
         onEdit: (editId) => nav.navigate(`/prendas/${editId}/edit`),
         onDelete: () => nav.navigate("/prendas"),
+        onSelectOutfit: (outfitId) => nav.navigate(`/outfits/${outfitId}`),
+        onSelectTip: (tipId) => nav.navigate(`/tips/${tipId}`),
       }),
   },
   {
@@ -133,10 +140,12 @@ const routes = [
       renderOutfitDetail(container, id, {
         outfitsRepo,
         prendasRepo,
+        tipsRepo,
         linksRepo,
         catalogosRepo,
         onEdit: (editId) => nav.navigate(`/outfits/${editId}/edit`),
         onDelete: () => nav.navigate("/outfits"),
+        onSelectTip: (tipId) => nav.navigate(`/tips/${tipId}`),
       }),
   },
   {
@@ -191,6 +200,22 @@ const routes = [
         onCreate: () => nav.navigate("/tips/new"),
       }),
   },
+  {
+    // unified-search "Cross-Entity Search". No persistent nav bar exists
+    // anywhere in the app yet (see search.js's header comment), so this is
+    // reached the same way every other screen is: the hash bar (e.g.
+    // `#/search`).
+    pattern: "/search",
+    handler: (container) =>
+      renderSearch(container, {
+        searchRepo,
+        onSelect: (hit) => {
+          if (hit.tipo === "prenda") nav.navigate(`/prendas/${hit.id}`);
+          else if (hit.tipo === "outfit") nav.navigate(`/outfits/${hit.id}`);
+          else if (hit.tipo === "tip") nav.navigate(`/tips/${hit.id}`);
+        },
+      }),
+  },
 ];
 
 function notFound(container, path) {
@@ -205,3 +230,20 @@ const app = createApp({ client, root, router });
 router.setGuard((path) => app.gate.guard(path));
 
 app.boot();
+
+// pwa-shell "Installability": registering the service worker (alongside
+// public/manifest.json's <link> in index.html) is what makes a supporting
+// browser's installability criteria met. Registered as a module (matches
+// public/sw.js being an ES module -- it exports shouldHandle for
+// tests/unit/sw-routing.test.js) and guarded by feature detection, since
+// not every browser supports service workers and a boot-time throw here
+// must never block the rest of the app from loading.
+if ("serviceWorker" in navigator) {
+  // Registration failure must never block boot (see comment above), but
+  // swallowing it silently made a real failure mode invisible: verify-report-
+  // pr4 WARNING-2 found that one missing precache URL used to reject the
+  // whole install with nothing surfaced anywhere. Log it instead.
+  navigator.serviceWorker
+    .register("/sw.js", { type: "module" })
+    .catch((error) => console.warn("[sw] registration failed:", error));
+}

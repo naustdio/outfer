@@ -92,20 +92,20 @@ Neither PR1 nor PR2 ever created `ui/router.js` or an HTML entry point, so the a
   - No separate `tip-detail.js` exists (per this task list) — `tip-form.js` in edit mode doubles as the attachment-management view and also carries the delete button (styling-tips "Delete a tip"), same cascade-FK reasoning as `prenda-detail.js`/`outfit-detail.js`.
   - `src/main.js` wired with `/outfits`, `/outfits/new`, `/outfits/:id`, `/outfits/:id/edit`, `/tips`, `/tips/new`, `/tips/:id` routes against the new screens, following the same route-ordering convention (static/longer patterns before `:id`) established in Phase 6.5.
 
-## Phase 9: Unified Search
+## Phase 9: Unified Search (PR4)
 
-- [ ] 9.1 RED+GREEN `tests/unit/ui/search.test.js` — groups `SearchHit[]` by `tipo`; empty groups on no match
-- [ ] 9.2 `src/ui/screens/search.js` wired to `data/search.js`
+- [x] 9.1 RED+GREEN `tests/unit/ui/search.test.js` — groups `SearchHit[]` by `tipo`; empty groups on no match
+- [x] 9.2 `src/ui/screens/search.js` wired to `data/search.js` — mounted as its own `/search` route in `src/main.js` (no persistent nav bar exists anywhere in the app yet, see Phase 6.5/PR3 notes; consistent with the existing hash-navigation convention rather than introducing new UI chrome)
 
-## Phase 10: Reverse-Lookup Displays
+## Phase 10: Reverse-Lookup Displays (PR4)
 
-- [ ] 10.1 `src/ui/screens/prenda-detail.js` — add linked-outfits + linked-tips sections, empty-state when none
-- [ ] 10.2 `src/ui/components/empty-state.js` reused for both lookup sections
+- [x] 10.1 `src/ui/screens/prenda-detail.js` — add linked-outfits + linked-tips sections, empty-state when none. `src/ui/screens/outfit-detail.js` also gained a linked-tips section (styling-tips "each entity's detail view MUST show the tip" — closes verify-report-pr3.md's WARNING-2/CRITICAL flag that outfit-detail.js rendered no tip list at all). Additive, not a listed subtask but required: `src/data/outfits.js` gained `getLinkedTipIds(id)` (RED+GREEN in `tests/unit/data/outfits.test.js`) so outfit-detail.js can resolve its own linked tip ids, mirroring `prendasRepo.getById()`'s existing `{ prenda, outfits, tips }` shape (design.md Interfaces/Contracts, built in PR2) that already supplies prenda-detail.js's reverse-lookup ids without any new method.
+- [x] 10.2 `src/ui/components/empty-state.js` reused for both lookup sections on `prenda-detail.js` (existing empty-state `<li>`s elsewhere predate this component and were left as-is, matching the "don't touch what Phase 10 doesn't own" convention)
 
-## Phase 11: PWA Shell
+## Phase 11: PWA Shell (PR4)
 
-- [ ] 11.1 RED+GREEN `tests/unit/sw-routing.test.js` + `public/sw.js` — pure `shouldHandle(request)`; `*.supabase.co` returns `false`
-- [ ] 11.2 `public/manifest.json` (icons 192/512/maskable, `standalone`) + `sw.js` install/activate/fetch wired to `shouldHandle`
+- [x] 11.1 RED+GREEN `tests/unit/sw-routing.test.js` + `public/sw.js` — pure `shouldHandle(request, origin)`; cross-origin (incl. `*.supabase.co` and the local `127.0.0.1:56321` dev stack) returns `false`
+- [x] 11.2 `public/manifest.json` (icons 192/512/maskable placeholder PNGs under `public/icons/`, `standalone`) + `sw.js` install/activate/fetch wired to `shouldHandle`, registered from `src/main.js` as `{ type: "module" }`
 
 ## Phase 12: RLS Integration Test Suite (`tests/rls/`, requires `SUPABASE_URL`)
 

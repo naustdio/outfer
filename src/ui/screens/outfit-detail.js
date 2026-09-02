@@ -1,5 +1,6 @@
 import { toOutfitViewModel, toPrendaViewModel } from "../../domain/mappers.js";
 import { joinList } from "../../domain/format.js";
+import { renderEmptyState } from "../components/empty-state.js";
 
 // outfit-composition "Derived Outfit Status" / "Derived Suggested Name" +
 // design.md "Refetch after mutation instead of client-side re-derivation":
@@ -22,27 +23,35 @@ export async function handleUnlinkGarment({ outfitsRepo, linksRepo, outfitId, pr
 
 // Renders a single outfit's detail: derived fields (estado, nombreSugerido
 // -- both read-only, never form inputs, per outfit-composition's "MUST NOT
-// be directly writable"), its non-derived fields, and the garment-linking
-// UI (list of linked garments with a remove button, plus a select+add
-// control for garments not yet linked). Not unit tested itself per
-// design.md's Testing Strategy table (DOM screens are manual/E2E for this
-// change; see prendas-list.js/prenda-detail.js/login.js headers) -- the
-// testable logic lives in handleLinkGarment/handleUnlinkGarment above.
+// be directly writable"), its non-derived fields, the garment-linking UI
+// (list of linked garments with a remove button, plus a select+add control
+// for garments not yet linked), and a read-only linked-tips reverse-lookup
+// section (styling-tips "Attach a tip to both an outfit and a garment" --
+// "each entity's detail view MUST show the tip"; closes verify-report-pr3's
+// WARNING-2/CRITICAL flag that this screen "renders no tip list at all").
+// Attach/detach for tips stays on tip-form.js's dual-attachment UI, same
+// division of responsibility as prenda-detail.js's linked-outfits/linked-
+// tips sections (Phase 10). Not unit tested itself per design.md's Testing
+// Strategy table (DOM screens are manual/E2E for this change; see
+// prendas-list.js/prenda-detail.js/login.js headers) -- the testable logic
+// lives in handleLinkGarment/handleUnlinkGarment above.
 export async function renderOutfitDetail(
   container,
   id,
-  { outfitsRepo, prendasRepo, linksRepo, catalogosRepo, onEdit, onDelete },
+  { outfitsRepo, prendasRepo, tipsRepo, linksRepo, catalogosRepo, onEdit, onDelete, onSelectTip },
 ) {
   async function load() {
-    const [{ outfit, prendaIds }, allPrendas, colores] = await Promise.all([
+    const [{ outfit, prendaIds }, tipIds, allPrendas, allTips, colores] = await Promise.all([
       outfitsRepo.getWithPrendas(id),
+      outfitsRepo.getLinkedTipIds(id),
       prendasRepo.list(),
+      tipsRepo.list(),
       catalogosRepo.listColores(),
     ]);
-    return { outfit, prendaIds, allPrendas, colores };
+    return { outfit, prendaIds, tipIds, allPrendas, allTips, colores };
   }
 
-  async function draw({ outfit, prendaIds, allPrendas, colores }) {
+  async function draw({ outfit, prendaIds, tipIds, allPrendas, allTips, colores }) {
     container.innerHTML = "";
 
     const vm = toOutfitViewModel(outfit);
@@ -93,7 +102,7 @@ export async function renderOutfitDetail(
           outfitId: id,
           prendaId: row.id,
         });
-        await draw({ ...refetched, allPrendas, colores });
+        await draw({ ...refetched, tipIds, allPrendas, allTips, colores });
       });
       item.append(label, removeButton);
       linkedList.append(item);
@@ -120,7 +129,7 @@ export async function renderOutfitDetail(
       if (!prendaId) return;
       addButton.disabled = true;
       const refetched = await handleLinkGarment({ outfitsRepo, linksRepo, outfitId: id, prendaId });
-      await draw({ ...refetched, allPrendas, colores });
+      await draw({ ...refetched, tipIds, allPrendas, allTips, colores });
     });
 
     const editButton = document.createElement("button");
@@ -139,7 +148,29 @@ export async function renderOutfitDetail(
       onDelete?.(vm.id);
     });
 
-    container.append(title, fields, linkedList, addForm, editButton, deleteButton);
+    // Read-only reverse lookup -- attach/detach for tips lives on
+    // tip-form.js's dual-attachment UI (styling-tips), not here.
+    const linkedTipSet = new Set(tipIds);
+    const linkedTips = allTips.filter((t) => linkedTipSet.has(t.id));
+
+    const tipsSection = document.createElement("section");
+    const tipsHeading = document.createElement("h3");
+    tipsHeading.textContent = "Tips vinculados";
+    tipsSection.append(tipsHeading);
+
+    const tipsList = document.createElement("ul");
+    if (linkedTips.length === 0) {
+      tipsList.append(renderEmptyState("Sin tips vinculados."));
+    }
+    for (const row of linkedTips) {
+      const item = document.createElement("li");
+      item.textContent = row.tip;
+      item.addEventListener("click", () => onSelectTip?.(row.id));
+      tipsList.append(item);
+    }
+    tipsSection.append(tipsList);
+
+    container.append(title, fields, linkedList, addForm, tipsSection, editButton, deleteButton);
   }
 
   const state = await load();
