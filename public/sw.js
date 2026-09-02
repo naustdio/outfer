@@ -92,7 +92,12 @@ export async function staleWhileRevalidate(cache, request, fetcher) {
 
   const networkFetch = fetcher(request).then((response) => {
     if (response && response.ok) {
-      cache.put(request, response.clone());
+      // Returned (not fire-and-forgotten): verify-report-pr5-fixpass
+      // WARNING-3 found that without this, `networkFetch` -- and therefore
+      // the `revalidate` promise `event.waitUntil()` awaits below -- settled
+      // before the cache write actually finished, so the service worker
+      // could be killed mid-write with the update silently lost.
+      return cache.put(request, response.clone()).then(() => response);
     }
     return response;
   });

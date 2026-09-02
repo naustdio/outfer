@@ -1,16 +1,16 @@
-// verify-report-pr5 WARNING-1 (carried over as part of the whole-change
-// CRITICAL-3 gap): the only existing coverage for styling-tips "Detach from
-// one relation leaves the other intact" is tests/unit/ui/tip-attach.test.js,
-// which injects FAKE repos and asserts call shapes only -- never proves the
-// real database behavior. This proves it against the real local Supabase
-// stack: attach ONE tip to TWO outfits via the REAL linksRepo
-// (src/data/links.js, an authenticated client -- the same repo the app
-// itself uses, not the admin/service-role client), detach it from one
-// outfit, then assert via a real admin query that the OTHER outfit_tip
-// join-table row still exists untouched. outfit_tip's primary key is
-// (outfit_id, tip_id) (0003_joins.sql), so a single tip CAN legitimately
-// link to more than one outfit -- this is exactly the shape that proves row
-// independence within the same join table.
+// verify-report-pr5-fixpass WARNING-1: the first version of this test used
+// one tip attached to TWO OUTFITS, which only proves row independence
+// within the same join table (outfit_tip). openspec/specs/styling-tips/
+// spec.md's actual scenario is CROSS-table: "a tip attached to both an
+// outfit and a garment, detach it from the garment only, the outfit
+// attachment survives" -- i.e. independence between prenda_tip and
+// outfit_tip, two DIFFERENT join tables. This proves that scenario, against
+// the real local Supabase stack: attach ONE tip to one outfit AND one
+// garment via the REAL linksRepo (src/data/links.js, an authenticated
+// client -- the same repo src/ui/screens/tip-form.js's
+// handleAttachOutfit/handleAttachGarment call, not a fake and not the
+// RLS-bypassing admin client), detach it from the garment only, then assert
+// via a real admin query that the outfit_tip row still exists untouched.
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { makeLinksRepo } from "../../src/data/links.js";
 import {
@@ -19,26 +19,29 @@ import {
   makeAdminClient,
   createTestUser,
   deleteTestUser,
+  getAnyTipoPrendaId,
+  insertPrenda,
   insertOutfit,
   insertTip,
   cleanupUserRows,
 } from "./setup.js";
 
 describe.skipIf(!hasSupabaseEnv)(
-  "Dual attachment independence: detaching one outfit_tip row leaves the other outfit's row intact",
+  "Dual attachment independence: detaching a tip from a garment leaves its outfit attachment intact",
   () => {
     const admin = makeAdminClient();
     let user;
-    let outfitOne;
-    let outfitTwo;
+    let outfit;
+    let prenda;
     let tip;
 
     beforeAll(async () => {
       await assertConnected(admin);
       user = await createTestUser(admin, "dual-attach");
-      [outfitOne, outfitTwo, tip] = await Promise.all([
-        insertOutfit(admin, user.id, { titulo: "dual-attach fixture outfit 1" }),
-        insertOutfit(admin, user.id, { titulo: "dual-attach fixture outfit 2" }),
+      const tipoPrendaId = await getAnyTipoPrendaId(admin);
+      [outfit, prenda, tip] = await Promise.all([
+        insertOutfit(admin, user.id, { titulo: "dual-attach fixture outfit" }),
+        insertPrenda(admin, user.id, tipoPrendaId, { nombre: "dual-attach fixture prenda" }),
         insertTip(admin, user.id, { tip: "dual-attach fixture tip" }),
       ]);
     });
@@ -48,41 +51,45 @@ describe.skipIf(!hasSupabaseEnv)(
       await deleteTestUser(admin, user?.id);
     });
 
-    it("attaching the same tip to two outfits, then detaching one, leaves the other's join row intact", async () => {
+    it("attaching one tip to an outfit AND a garment, then detaching the garment only, leaves the outfit's join row intact", async () => {
       // Real linksRepo through the real authenticated user client -- the
       // same repo src/ui/screens/tip-form.js's handleAttachOutfit/
-      // handleDetachOutfit call, not a fake and not the RLS-bypassing admin
-      // client.
+      // handleAttachGarment/handleDetachGarment call.
       const linksRepo = makeLinksRepo(user.client);
 
-      await linksRepo.linkOutfitTip(outfitOne.id, tip.id);
-      await linksRepo.linkOutfitTip(outfitTwo.id, tip.id);
+      await linksRepo.linkOutfitTip(outfit.id, tip.id);
+      await linksRepo.linkPrendaTip(prenda.id, tip.id);
 
-      // Precondition: both rows genuinely exist before detaching anything.
-      const { data: beforeRows, error: beforeError } = await admin
-        .from("outfit_tip")
-        .select("outfit_id, tip_id")
-        .eq("tip_id", tip.id);
-      expect(beforeError).toBeNull();
-      expect(beforeRows).toHaveLength(2);
+      // Precondition: both rows genuinely exist, in their own separate
+      // join tables, before detaching anything.
+      const [{ data: outfitRowsBefore, error: outfitBeforeError }, { data: prendaRowsBefore, error: prendaBeforeError }] =
+        await Promise.all([
+          admin.from("outfit_tip").select("outfit_id, tip_id").eq("tip_id", tip.id),
+          admin.from("prenda_tip").select("prenda_id, tip_id").eq("tip_id", tip.id),
+        ]);
+      expect(outfitBeforeError).toBeNull();
+      expect(prendaBeforeError).toBeNull();
+      expect(outfitRowsBefore).toHaveLength(1);
+      expect(prendaRowsBefore).toHaveLength(1);
 
-      await linksRepo.unlinkOutfitTip(outfitOne.id, tip.id);
+      await linksRepo.unlinkPrendaTip(prenda.id, tip.id);
 
-      const { data: afterDetachOne, error: detachedError } = await admin
-        .from("outfit_tip")
-        .select("outfit_id, tip_id")
-        .eq("outfit_id", outfitOne.id)
+      const { data: afterDetach, error: detachedError } = await admin
+        .from("prenda_tip")
+        .select("prenda_id, tip_id")
+        .eq("prenda_id", prenda.id)
         .eq("tip_id", tip.id);
       expect(detachedError).toBeNull();
-      expect(afterDetachOne).toHaveLength(0);
+      expect(afterDetach).toHaveLength(0);
 
-      // The load-bearing assertion: outfitTwo's row survives, untouched,
-      // read directly from the database (not inferred from the app's own
-      // refetch, and not asserted against a fake).
+      // The load-bearing assertion: the outfit's row, in a DIFFERENT join
+      // table (outfit_tip, not prenda_tip), survives untouched -- read
+      // directly from the database, not inferred from the app's own
+      // refetch and not asserted against a fake.
       const { data: survivorRow, error: survivorError } = await admin
         .from("outfit_tip")
         .select("outfit_id, tip_id")
-        .eq("outfit_id", outfitTwo.id)
+        .eq("outfit_id", outfit.id)
         .eq("tip_id", tip.id);
       expect(survivorError).toBeNull();
       expect(survivorRow).toHaveLength(1);

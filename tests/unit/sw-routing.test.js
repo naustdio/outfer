@@ -112,7 +112,7 @@ function fakeResponse(body, { ok = true } = {}) {
 describe("staleWhileRevalidate", () => {
   it("returns the cached response immediately when one exists", async () => {
     const cached = fakeResponse("cached-shell");
-    const cache = { match: vi.fn().mockResolvedValue(cached), put: vi.fn() };
+    const cache = { match: vi.fn().mockResolvedValue(cached), put: vi.fn().mockResolvedValue(undefined) };
     const fetcher = vi.fn().mockResolvedValue(fakeResponse("fresh-shell"));
 
     const { response } = await staleWhileRevalidate(cache, "/src/main.js", fetcher);
@@ -123,7 +123,7 @@ describe("staleWhileRevalidate", () => {
   it("kicks off a background fetch and updates the cache for next time when cached", async () => {
     const cached = fakeResponse("cached-shell");
     const fresh = fakeResponse("fresh-shell");
-    const cache = { match: vi.fn().mockResolvedValue(cached), put: vi.fn() };
+    const cache = { match: vi.fn().mockResolvedValue(cached), put: vi.fn().mockResolvedValue(undefined) };
     const fetcher = vi.fn().mockResolvedValue(fresh);
 
     const { response, revalidate } = await staleWhileRevalidate(cache, "/src/main.js", fetcher);
@@ -136,7 +136,7 @@ describe("staleWhileRevalidate", () => {
 
   it("a failed background revalidation never rejects and never breaks the already-served cached response", async () => {
     const cached = fakeResponse("cached-shell");
-    const cache = { match: vi.fn().mockResolvedValue(cached), put: vi.fn() };
+    const cache = { match: vi.fn().mockResolvedValue(cached), put: vi.fn().mockResolvedValue(undefined) };
     const fetcher = vi.fn().mockRejectedValue(new Error("offline"));
 
     const { response, revalidate } = await staleWhileRevalidate(cache, "/src/main.js", fetcher);
@@ -147,7 +147,7 @@ describe("staleWhileRevalidate", () => {
 
   it("falls back to the network and caches the response when nothing is cached yet", async () => {
     const fresh = fakeResponse("fresh-shell");
-    const cache = { match: vi.fn().mockResolvedValue(undefined), put: vi.fn() };
+    const cache = { match: vi.fn().mockResolvedValue(undefined), put: vi.fn().mockResolvedValue(undefined) };
     const fetcher = vi.fn().mockResolvedValue(fresh);
 
     const { response } = await staleWhileRevalidate(cache, "/screens/new-screen.js", fetcher);
@@ -157,9 +157,36 @@ describe("staleWhileRevalidate", () => {
   });
 
   it("propagates a network failure when nothing is cached (true cold cache + offline)", async () => {
-    const cache = { match: vi.fn().mockResolvedValue(undefined), put: vi.fn() };
+    const cache = { match: vi.fn().mockResolvedValue(undefined), put: vi.fn().mockResolvedValue(undefined) };
     const fetcher = vi.fn().mockRejectedValue(new Error("offline"));
 
     await expect(staleWhileRevalidate(cache, "/screens/new-screen.js", fetcher)).rejects.toThrow("offline");
+  });
+
+  // verify-report-pr5-fixpass WARNING-2: the `response.ok` guard was never
+  // exercised in its negative direction -- a fakeResponse({ ok: false })
+  // never appeared in any prior test, so an implementation that cached
+  // error pages (404s, 500s) into the shell would have passed all of them.
+  it("never caches a non-OK response when revalidating a cache hit", async () => {
+    const cached = fakeResponse("cached-shell");
+    const errorResponse = fakeResponse("Not Found", { ok: false });
+    const cache = { match: vi.fn().mockResolvedValue(cached), put: vi.fn().mockResolvedValue(undefined) };
+    const fetcher = vi.fn().mockResolvedValue(errorResponse);
+
+    const { revalidate } = await staleWhileRevalidate(cache, "/src/main.js", fetcher);
+    await revalidate;
+
+    expect(cache.put).not.toHaveBeenCalled();
+  });
+
+  it("never caches a non-OK response on a cold cache, but still returns it to the caller", async () => {
+    const errorResponse = fakeResponse("Not Found", { ok: false });
+    const cache = { match: vi.fn().mockResolvedValue(undefined), put: vi.fn().mockResolvedValue(undefined) };
+    const fetcher = vi.fn().mockResolvedValue(errorResponse);
+
+    const { response } = await staleWhileRevalidate(cache, "/screens/new-screen.js", fetcher);
+
+    expect(response).toBe(errorResponse);
+    expect(cache.put).not.toHaveBeenCalled();
   });
 });
