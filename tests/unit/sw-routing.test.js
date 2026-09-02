@@ -7,8 +7,8 @@
 // an explicit second parameter (rather than reading `self.location.origin`
 // internally) so this stays a pure function callable from Node; the actual
 // fetch listener in sw.js passes self.location.origin at call time.
-import { describe, it, expect } from "vitest";
-import { shouldHandle } from "../../public/sw.js";
+import { describe, it, expect, vi } from "vitest";
+import { shouldHandle, precacheBestEffort } from "../../public/sw.js";
 
 const APP_ORIGIN = "https://closet.example";
 
@@ -48,5 +48,44 @@ describe("shouldHandle", () => {
     const request = makeRequest(`${APP_ORIGIN}/src/main.js`, "POST");
 
     expect(shouldHandle(request, APP_ORIGIN)).toBe(false);
+  });
+});
+
+// verify-report-pr4 WARNING-2: cache.addAll() is all-or-nothing, so one
+// missing precache URL (most likely /config.js -- gitignored, per-deploy,
+// may not exist yet on a fresh checkout) used to reject the entire install,
+// leaving the worker "redundant" with nothing cached -- silently, since the
+// only caller had an empty `.catch(() => {})`. precacheBestEffort replaces
+// cache.addAll() with independent per-URL attempts precisely so a single
+// missing file degrades to "one entry not cached yet" instead of "install
+// failed, zero offline capability".
+describe("precacheBestEffort", () => {
+  function fakeCache(behaviors) {
+    return { add: vi.fn((url) => behaviors[url] ?? Promise.resolve()) };
+  }
+
+  it("caches every URL that succeeds even when another URL fails", async () => {
+    const cache = fakeCache({ "/config.js": Promise.reject(new Error("404")) });
+
+    await precacheBestEffort(cache, ["/index.html", "/config.js", "/manifest.json"]);
+
+    expect(cache.add).toHaveBeenCalledWith("/index.html");
+    expect(cache.add).toHaveBeenCalledWith("/config.js");
+    expect(cache.add).toHaveBeenCalledWith("/manifest.json");
+  });
+
+  it("never throws or rejects when one URL fails", async () => {
+    const cache = fakeCache({ "/config.js": Promise.reject(new Error("404")) });
+
+    await expect(precacheBestEffort(cache, ["/index.html", "/config.js"])).resolves.not.toThrow();
+  });
+
+  it("never throws when every URL fails", async () => {
+    const cache = fakeCache({
+      "/a": Promise.reject(new Error("404")),
+      "/b": Promise.reject(new Error("network error")),
+    });
+
+    await expect(precacheBestEffort(cache, ["/a", "/b"])).resolves.not.toThrow();
   });
 });

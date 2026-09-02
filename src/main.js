@@ -239,5 +239,11 @@ app.boot();
 // not every browser supports service workers and a boot-time throw here
 // must never block the rest of the app from loading.
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/sw.js", { type: "module" }).catch(() => {});
+  // Registration failure must never block boot (see comment above), but
+  // swallowing it silently made a real failure mode invisible: verify-report-
+  // pr4 WARNING-2 found that one missing precache URL used to reject the
+  // whole install with nothing surfaced anywhere. Log it instead.
+  navigator.serviceWorker
+    .register("/sw.js", { type: "module" })
+    .catch((error) => console.warn("[sw] registration failed:", error));
 }

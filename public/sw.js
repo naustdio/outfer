@@ -53,6 +53,25 @@ export function shouldHandle(request, origin) {
   return new URL(request.url).origin === origin;
 }
 
+// cache.addAll() is all-or-nothing: ONE missing URL (most likely /config.js,
+// which is gitignored and per-deploy -- it may genuinely not exist yet on a
+// fresh checkout before the operator creates it) rejects the whole install,
+// which leaves the worker permanently "redundant" with zero shell cached and
+// therefore zero offline capability -- silently, since the caller only had
+// an empty `.catch(() => {})`. Precache each URL independently instead: a
+// missing file just means that one entry isn't cached yet (the cache-first
+// fetch handler below will pick it up opportunistically on first successful
+// fetch), not that installation as a whole fails.
+export async function precacheBestEffort(cache, urls) {
+  const results = await Promise.allSettled(urls.map((url) => cache.add(url)));
+  const failed = results
+    .map((result, i) => (result.status === "rejected" ? urls[i] : null))
+    .filter(Boolean);
+  if (failed.length > 0) {
+    console.warn("[sw] precache: skipped (not found or fetch failed):", failed);
+  }
+}
+
 async function cacheFirst(request) {
   const cache = await caches.open(SHELL_CACHE);
   const cached = await cache.match(request);
@@ -78,7 +97,7 @@ if (typeof self !== "undefined" && typeof self.addEventListener === "function") 
     event.waitUntil(
       caches
         .open(SHELL_CACHE)
-        .then((cache) => cache.addAll(PRECACHE_URLS))
+        .then((cache) => precacheBestEffort(cache, PRECACHE_URLS))
         .then(() => self.skipWaiting()),
     );
   });
