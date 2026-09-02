@@ -40,6 +40,7 @@ const PRECACHE_URLS = [
   "/config.js",
   "/vendor/supabase-js.esm.js",
   "/src/main.js",
+  "/styles.css",
 ];
 
 // Pure routing predicate (pwa-shell spec + design.md sw.js table): only

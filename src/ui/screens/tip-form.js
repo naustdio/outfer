@@ -48,6 +48,7 @@ const CATEGORIA_OPTIONS = ["Colores", "Texturas", "Proporciones", "Accesorios", 
 
 function checkboxGroup(name, options, selected = []) {
   const fieldset = document.createElement("fieldset");
+  fieldset.className = "checkbox-group";
   for (const option of options) {
     const label = document.createElement("label");
     const input = document.createElement("input");
@@ -61,6 +62,20 @@ function checkboxGroup(name, options, selected = []) {
   return fieldset;
 }
 
+function field(labelText, control, id) {
+  const wrap = document.createElement("div");
+  wrap.className = "form-field";
+  const label = document.createElement("label");
+  label.className = "eyebrow";
+  label.textContent = labelText;
+  if (id) {
+    label.htmlFor = id;
+    control.id = id;
+  }
+  wrap.append(label, control);
+  return wrap;
+}
+
 function renderAttachmentSection(container, {
   title,
   attachedRows,
@@ -71,11 +86,13 @@ function renderAttachmentSection(container, {
   onDetach,
 }) {
   const section = document.createElement("section");
+  section.className = "attach-section";
   const heading = document.createElement("h3");
   heading.textContent = title;
   section.append(heading);
 
   const list = document.createElement("ul");
+  list.className = "attach-list";
   if (attachedRows.length === 0) {
     const empty = document.createElement("li");
     empty.className = "empty-state";
@@ -88,6 +105,7 @@ function renderAttachmentSection(container, {
     label.textContent = attachedLabel(row);
     const removeButton = document.createElement("button");
     removeButton.type = "button";
+    removeButton.className = "btn btn-ghost";
     removeButton.textContent = "Quitar";
     removeButton.addEventListener("click", () => onDetach(row));
     item.append(label, removeButton);
@@ -96,7 +114,9 @@ function renderAttachmentSection(container, {
   section.append(list);
 
   const form = document.createElement("form");
+  form.className = "attach-form";
   const select = document.createElement("select");
+  select.setAttribute("aria-label", title);
   for (const row of availableRows) {
     const option = document.createElement("option");
     option.value = row.id;
@@ -105,6 +125,7 @@ function renderAttachmentSection(container, {
   }
   const addButton = document.createElement("button");
   addButton.type = "submit";
+  addButton.className = "btn";
   addButton.textContent = "Vincular";
   addButton.disabled = availableRows.length === 0;
   form.append(select, addButton);
@@ -145,6 +166,10 @@ export function renderTipForm(
   const form = document.createElement("form");
   form.className = "tip-form";
 
+  const heading = document.createElement("h1");
+  heading.textContent = tip ? "Editar tip" : "Nuevo tip";
+  form.append(heading);
+
   const tipInput = document.createElement("textarea");
   tipInput.name = "tip";
   tipInput.placeholder = "Tip";
@@ -162,14 +187,26 @@ export function renderTipForm(
 
   const submitButton = document.createElement("button");
   submitButton.type = "submit";
+  submitButton.className = "btn btn-primary";
   submitButton.textContent = tip ? "Guardar cambios" : "Crear tip";
 
   const cancelButton = document.createElement("button");
   cancelButton.type = "button";
+  cancelButton.className = "btn btn-ghost";
   cancelButton.textContent = "Cancelar";
   cancelButton.addEventListener("click", () => onCancel?.());
 
-  form.append(tipInput, descripcionInput, categoriaField, errorList, submitButton, cancelButton);
+  const formActions = document.createElement("div");
+  formActions.className = "form-actions";
+  formActions.append(submitButton, cancelButton);
+
+  form.append(
+    field("Tip", tipInput, "tip-tip"),
+    field("Descripcion", descripcionInput, "tip-descripcion"),
+    field("Categoria", categoriaField),
+    errorList,
+    formActions,
+  );
 
   if (tip) {
     // styling-tips "Delete a tip": FKs on outfit_tip/prenda_tip cascade on
@@ -177,14 +214,16 @@ export function renderTipForm(
     // matches prenda-detail.js's/outfit-detail.js's delete-button comments.
     const deleteButton = document.createElement("button");
     deleteButton.type = "button";
-    deleteButton.textContent = "Eliminar";
+    deleteButton.className = "btn btn-danger";
+    deleteButton.textContent = "Eliminar tip";
     deleteButton.addEventListener("click", async () => {
       await tipsRepo.remove(tip.id);
       onDeleted?.(tip.id);
     });
-    form.append(deleteButton);
+    formActions.append(deleteButton);
   }
 
+  container.className = "screen tip-form-screen";
   container.append(form);
 
   form.addEventListener("submit", async (event) => {

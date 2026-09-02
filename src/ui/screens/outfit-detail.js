@@ -56,10 +56,18 @@ export async function renderOutfitDetail(
 
     const vm = toOutfitViewModel(outfit);
 
-    const title = document.createElement("h2");
-    title.textContent = vm.titulo;
+    const screen = document.createElement("div");
+    screen.className = "screen outfit-detail-screen";
+
+    const header = document.createElement("div");
+    header.className = "screen-header";
+
+    const title = document.createElement("h1");
+    title.textContent = vm.titulo || vm.nombreSugerido || "Outfit sin nombre";
+    header.append(title);
 
     const fields = document.createElement("dl");
+    fields.className = "detail-fields";
     const rows = [
       ["Estado", vm.estado],
       ["Nombre sugerido", vm.nombreSugerido],
@@ -78,8 +86,20 @@ export async function renderOutfitDetail(
     const linkedPrendas = allPrendas.filter((p) => linkedSet.has(p.id));
     const unlinkedPrendas = allPrendas.filter((p) => !linkedSet.has(p.id));
 
+    // Flat-lay-style breakdown grid: the linked-garments section below the
+    // main content, styled for the dark showcase palette (design direction:
+    // signature detail for this screen).
+    const flatlay = document.createElement("section");
+    flatlay.className = "flatlay";
+    const flatlayHeadingRow = document.createElement("div");
+    flatlayHeadingRow.className = "flatlay-heading";
+    const flatlayHeading = document.createElement("h3");
+    flatlayHeading.textContent = "Prendas de este outfit";
+    flatlayHeadingRow.append(flatlayHeading);
+    flatlay.append(flatlayHeadingRow);
+
     const linkedList = document.createElement("ul");
-    linkedList.className = "outfit-linked-prendas";
+    linkedList.className = "outfit-linked-prendas flatlay-grid";
     if (linkedPrendas.length === 0) {
       const empty = document.createElement("li");
       empty.className = "empty-state";
@@ -89,10 +109,12 @@ export async function renderOutfitDetail(
     for (const row of linkedPrendas) {
       const prendaVm = toPrendaViewModel(row, { coloresCatalog: colores });
       const item = document.createElement("li");
+      item.className = "flatlay-item";
       const label = document.createElement("span");
       label.textContent = prendaVm.nombre;
       const removeButton = document.createElement("button");
       removeButton.type = "button";
+      removeButton.className = "btn btn-ghost";
       removeButton.textContent = "Quitar";
       removeButton.addEventListener("click", async () => {
         removeButton.disabled = true;
@@ -107,11 +129,13 @@ export async function renderOutfitDetail(
       item.append(label, removeButton);
       linkedList.append(item);
     }
+    flatlay.append(linkedList);
 
     const addForm = document.createElement("form");
-    addForm.className = "outfit-add-prenda";
+    addForm.className = "outfit-add-prenda flatlay-add";
     const addSelect = document.createElement("select");
     addSelect.name = "prenda_id";
+    addSelect.setAttribute("aria-label", "Prenda a agregar");
     for (const row of unlinkedPrendas) {
       const option = document.createElement("option");
       option.value = row.id;
@@ -120,6 +144,7 @@ export async function renderOutfitDetail(
     }
     const addButton = document.createElement("button");
     addButton.type = "submit";
+    addButton.className = "btn";
     addButton.textContent = "Agregar prenda";
     addButton.disabled = unlinkedPrendas.length === 0;
     addForm.append(addSelect, addButton);
@@ -131,15 +156,18 @@ export async function renderOutfitDetail(
       const refetched = await handleLinkGarment({ outfitsRepo, linksRepo, outfitId: id, prendaId });
       await draw({ ...refetched, tipIds, allPrendas, allTips, colores });
     });
+    flatlay.append(addForm);
 
     const editButton = document.createElement("button");
     editButton.type = "button";
-    editButton.textContent = "Editar";
+    editButton.className = "btn";
+    editButton.textContent = "Editar outfit";
     editButton.addEventListener("click", () => onEdit?.(vm.id));
 
     const deleteButton = document.createElement("button");
     deleteButton.type = "button";
-    deleteButton.textContent = "Eliminar";
+    deleteButton.className = "btn btn-danger";
+    deleteButton.textContent = "Eliminar outfit";
     deleteButton.addEventListener("click", async () => {
       // FKs on outfit_prenda/outfit_tip cascade on delete (0003_joins.sql),
       // satisfying outfit-composition's "Delete an outfit" scenario without
@@ -148,17 +176,24 @@ export async function renderOutfitDetail(
       onDelete?.(vm.id);
     });
 
+    const actions = document.createElement("div");
+    actions.className = "screen-actions";
+    actions.append(editButton, deleteButton);
+    header.append(actions);
+
     // Read-only reverse lookup -- attach/detach for tips lives on
     // tip-form.js's dual-attachment UI (styling-tips), not here.
     const linkedTipSet = new Set(tipIds);
     const linkedTips = allTips.filter((t) => linkedTipSet.has(t.id));
 
     const tipsSection = document.createElement("section");
+    tipsSection.className = "attach-section";
     const tipsHeading = document.createElement("h3");
     tipsHeading.textContent = "Tips vinculados";
     tipsSection.append(tipsHeading);
 
     const tipsList = document.createElement("ul");
+    tipsList.className = "attach-list";
     if (linkedTips.length === 0) {
       tipsList.append(renderEmptyState("Sin tips vinculados."));
     }
@@ -170,7 +205,8 @@ export async function renderOutfitDetail(
     }
     tipsSection.append(tipsList);
 
-    container.append(title, fields, linkedList, addForm, tipsSection, editButton, deleteButton);
+    screen.append(header, fields, flatlay, tipsSection);
+    container.append(screen);
   }
 
   const state = await load();
