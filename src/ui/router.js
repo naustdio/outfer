@@ -91,12 +91,22 @@ export function createRouter({ root, routes, notFound, window: win = window }) {
       guard = fn;
     },
 
-    start() {
+    // `landingPath` is only used when there is no hash yet (a fresh sign-in
+    // or a fresh load with an existing session). Accepting it here -- instead
+    // of having the caller call start() and then navigate() right after --
+    // matters: start() already performs exactly one render (either via the
+    // hashchange its own `win.location.hash = ...` triggers, or directly for
+    // an existing hash). A caller doing `start(); navigate(path)` afterward
+    // renders the SAME default path a second time before this fix (verify
+    // caught the login-never-leaves bug; this second issue -- duplicated
+    // renders on sign-in -- was found by manually exercising the fix in a
+    // real browser afterward, since no test asserted render call COUNT).
+    start(landingPath = "/prendas") {
       win.addEventListener("hashchange", onHashChange);
       const current = parseHash(win.location.hash);
       if (!win.location.hash) {
         // Setting the hash triggers hashchange, which renders.
-        win.location.hash = "/prendas";
+        win.location.hash = landingPath;
       } else {
         render(current);
       }
