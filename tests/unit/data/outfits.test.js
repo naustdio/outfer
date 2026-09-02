@@ -48,6 +48,33 @@ describe("makeOutfitsRepo", () => {
     expect(result).toEqual({ id: "o1", titulo: "Nuevo" });
   });
 
+  // outfit_v (single row: estado/nombre_sugerido from Postgres) has no linked
+  // garment ids -- it only aggregates a count. outfit-detail.js needs the
+  // actual outfit_prenda rows to render/unlink individual garments, so this
+  // is a second read alongside the outfit_v row, mirroring prendasRepo's
+  // getById() multi-query shape (design.md Interfaces) without changing the
+  // existing getById() contract above.
+  it("getWithPrendas() reads the outfit_v row plus its linked outfit_prenda rows", async () => {
+    const client = makeFakeClient({
+      responses: [
+        { data: { id: "o1", estado: "Incompleto" }, error: null },
+        { data: [{ prenda_id: "p1" }, { prenda_id: "p2" }], error: null },
+      ],
+    });
+    const repo = makeOutfitsRepo(client);
+
+    const result = await repo.getWithPrendas("o1");
+
+    expect(client.calls[0].table).toBe("outfit_v");
+    expect(client.calls[0].ops).toContainEqual(["eq", ["id", "o1"]]);
+    expect(client.calls[1].table).toBe("outfit_prenda");
+    expect(client.calls[1].ops).toContainEqual(["eq", ["outfit_id", "o1"]]);
+    expect(result).toEqual({
+      outfit: { id: "o1", estado: "Incompleto" },
+      prendaIds: ["p1", "p2"],
+    });
+  });
+
   it("remove() deletes outfit by id", async () => {
     const client = makeFakeClient({ responses: [{ data: null, error: null }] });
     const repo = makeOutfitsRepo(client);

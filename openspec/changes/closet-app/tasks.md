@@ -79,15 +79,18 @@ Neither PR1 nor PR2 ever created `ui/router.js` or an HTML entry point, so the a
 - [x] 6.5.3 `public/index.html` — HTML shell (`#app` mount container, loads `src/main.js` as an ES module + a gitignored `public/config.js` for runtime Supabase config, template at `public/config.example.js`) — deliberately unstyled, no `app.css` exists yet
 - [x] 6.5.4 `package.json` `dev` script + `scripts/dev-server.mjs` — zero-dependency static file server for local manual verification (no bundler introduced); serves `/src/*` from the repo's `src/` and everything else from `public/`, mirroring the production doc-root layout from design.md's target file tree
 
-## Phase 7: Outfit CRUD UI + Linking
+## Phase 7: Outfit CRUD UI + Linking (PR3)
 
-- [ ] 7.1 RED+GREEN `tests/unit/ui/outfit-link.test.js` — link/unlink triggers `outfit_v` refetch, no client-side recompute
-- [ ] 7.2 `src/ui/screens/outfits-list.js`, `outfit-detail.js`, `outfit-form.js` (CRUD, link/unlink, render `estado`/`nombre_sugerido`)
+- [x] 7.1 RED+GREEN `tests/unit/ui/outfit-link.test.js` — link/unlink triggers `outfit_v` refetch, no client-side recompute
+- [x] 7.2 `src/ui/screens/outfits-list.js`, `outfit-detail.js`, `outfit-form.js` (CRUD, link/unlink, render `estado`/`nombre_sugerido`)
+  - Additive, not a listed subtask but required to implement 7.1/7.2: `src/data/outfits.js` gained `getWithPrendas(id)` (RED+GREEN in `tests/unit/data/outfits.test.js`) alongside the existing `getById()` (left byte-identical) — `outfit_v` has no linked-garment ids, only a count, so the detail/unlink UI needs a second query. `src/domain/validation.js` gained `validateOutfit`/`validateTip` (RED+GREEN in `tests/unit/domain/validation.test.js`), matching the design-intended "validation.js mirrors DB constraints" role already established for `validatePrenda`.
 
-## Phase 8: Tips CRUD UI + Dual Attachment
+## Phase 8: Tips CRUD UI + Dual Attachment (PR3)
 
-- [ ] 8.1 RED+GREEN `tests/unit/ui/tip-attach.test.js` — detach from one relation leaves the other intact
-- [ ] 8.2 `src/ui/screens/tips-list.js`, `tip-form.js` (CRUD, attach/detach outfit+garment independently)
+- [x] 8.1 RED+GREEN `tests/unit/ui/tip-attach.test.js` — detach from one relation leaves the other intact
+- [x] 8.2 `src/ui/screens/tips-list.js`, `tip-form.js` (CRUD, attach/detach outfit+garment independently)
+  - No separate `tip-detail.js` exists (per this task list) — `tip-form.js` in edit mode doubles as the attachment-management view and also carries the delete button (styling-tips "Delete a tip"), same cascade-FK reasoning as `prenda-detail.js`/`outfit-detail.js`.
+  - `src/main.js` wired with `/outfits`, `/outfits/new`, `/outfits/:id`, `/outfits/:id/edit`, `/tips`, `/tips/new`, `/tips/:id` routes against the new screens, following the same route-ordering convention (static/longer patterns before `:id`) established in Phase 6.5.
 
 ## Phase 9: Unified Search
 

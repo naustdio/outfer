@@ -16,10 +16,18 @@ import { createApp } from "./app.js";
 import { createRouter } from "./ui/router.js";
 import { createSupabaseClient } from "./data/supabaseClient.js";
 import { makePrendasRepo } from "./data/prendas.js";
+import { makeOutfitsRepo } from "./data/outfits.js";
+import { makeTipsRepo } from "./data/tips.js";
+import { makeLinksRepo } from "./data/links.js";
 import { makeCatalogosRepo } from "./data/catalogos.js";
 import { renderPrendasList } from "./ui/screens/prendas-list.js";
 import { renderPrendaDetail } from "./ui/screens/prenda-detail.js";
 import { renderPrendaForm } from "./ui/screens/prenda-form.js";
+import { renderOutfitsList } from "./ui/screens/outfits-list.js";
+import { renderOutfitDetail } from "./ui/screens/outfit-detail.js";
+import { renderOutfitForm } from "./ui/screens/outfit-form.js";
+import { renderTipsList } from "./ui/screens/tips-list.js";
+import { renderTipForm } from "./ui/screens/tip-form.js";
 
 // Runtime config comes from a plain global set by public/config.js (see
 // public/config.example.js), not a bundler env var -- design.md: vanilla ES
@@ -31,6 +39,9 @@ const { SUPABASE_URL, SUPABASE_ANON_KEY } = window.__CLOSET_APP_CONFIG__ ?? {};
 const root = document.getElementById("app");
 const client = createSupabaseClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const prendasRepo = makePrendasRepo(client);
+const outfitsRepo = makeOutfitsRepo(client);
+const tipsRepo = makeTipsRepo(client);
+const linksRepo = makeLinksRepo(client);
 const catalogosRepo = makeCatalogosRepo(client);
 
 async function loadFormCatalogs() {
@@ -93,6 +104,91 @@ const routes = [
         catalogosRepo,
         onSelect: (id) => nav.navigate(`/prendas/${id}`),
         onCreate: () => nav.navigate("/prendas/new"),
+      }),
+  },
+  {
+    pattern: "/outfits/new",
+    handler: (container) =>
+      renderOutfitForm(container, {
+        outfitsRepo,
+        onSaved: (saved) => nav.navigate(`/outfits/${saved.id}`),
+        onCancel: () => nav.navigate("/outfits"),
+      }),
+  },
+  {
+    pattern: "/outfits/:id/edit",
+    handler: async (container, { id }) => {
+      const { outfit } = await outfitsRepo.getWithPrendas(id);
+      renderOutfitForm(container, {
+        outfit,
+        outfitsRepo,
+        onSaved: () => nav.navigate(`/outfits/${id}`),
+        onCancel: () => nav.navigate(`/outfits/${id}`),
+      });
+    },
+  },
+  {
+    pattern: "/outfits/:id",
+    handler: (container, { id }) =>
+      renderOutfitDetail(container, id, {
+        outfitsRepo,
+        prendasRepo,
+        linksRepo,
+        catalogosRepo,
+        onEdit: (editId) => nav.navigate(`/outfits/${editId}/edit`),
+        onDelete: () => nav.navigate("/outfits"),
+      }),
+  },
+  {
+    pattern: "/outfits",
+    handler: (container) =>
+      renderOutfitsList(container, {
+        outfitsRepo,
+        onSelect: (id) => nav.navigate(`/outfits/${id}`),
+        onCreate: () => nav.navigate("/outfits/new"),
+      }),
+  },
+  {
+    pattern: "/tips/new",
+    handler: (container) =>
+      renderTipForm(container, {
+        tipsRepo,
+        linksRepo,
+        onSaved: (saved) => nav.navigate(`/tips/${saved.id}`),
+        onCancel: () => nav.navigate("/tips"),
+      }),
+  },
+  {
+    // Combined edit + dual-attachment view -- there is no separate
+    // tip-detail.js (tasks.md Phase 8 lists only tips-list.js + tip-form.js).
+    pattern: "/tips/:id",
+    handler: async (container, { id }) => {
+      const [{ tip, outfits, prendas }, allOutfits, allPrendas] = await Promise.all([
+        tipsRepo.getById(id),
+        outfitsRepo.list(),
+        prendasRepo.list(),
+      ]);
+      renderTipForm(container, {
+        tip,
+        attachedOutfits: outfits,
+        attachedPrendas: prendas,
+        allOutfits,
+        allPrendas,
+        tipsRepo,
+        linksRepo,
+        onSaved: () => nav.navigate(`/tips/${id}`),
+        onCancel: () => nav.navigate("/tips"),
+        onDeleted: () => nav.navigate("/tips"),
+      });
+    },
+  },
+  {
+    pattern: "/tips",
+    handler: (container) =>
+      renderTipsList(container, {
+        tipsRepo,
+        onSelect: (id) => nav.navigate(`/tips/${id}`),
+        onCreate: () => nav.navigate("/tips/new"),
       }),
   },
 ];
