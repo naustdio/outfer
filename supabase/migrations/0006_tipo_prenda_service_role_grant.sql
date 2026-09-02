@@ -1,0 +1,14 @@
+-- 0006_tipo_prenda_service_role_grant: fixes a schema bug found while
+-- writing tests/rls/lookup-tables.test.js (Phase 12, task 12.3/12.7): the
+-- 0001 migration granted `service_role` only SELECT+INSERT on tipo_prenda,
+-- mirroring the intentionally append-only grant given to `authenticated`.
+-- But `service_role` bypasses RLS (rolbypassrls=true) and is Postgres'
+-- table-level GRANT system, which is separate from RLS -- it still needs
+-- its OWN explicit UPDATE/DELETE grant to perform admin corrections (e.g.
+-- deleting a mis-seeded or duplicate tipo_prenda row), independent of the
+-- deliberate restriction on `authenticated`. Without this, even a
+-- service-role script cannot clean up its own mistakes on this table.
+-- `authenticated` intentionally keeps NO update/delete grant -- the
+-- append-only design decision for the app-facing role is unchanged.
+-- Paired down migration: supabase/migrations_down/0006_tipo_prenda_service_role_grant_down.sql
+grant update, delete on tipo_prenda to service_role;

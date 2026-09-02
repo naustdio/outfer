@@ -109,13 +109,46 @@ Neither PR1 nor PR2 ever created `ui/router.js` or an HTML entry point, so the a
 
 ## Phase 12: RLS Integration Test Suite (`tests/rls/`, requires `SUPABASE_URL`)
 
-- [ ] 12.1 `tests/rls/setup.js` — two clients from the same anon key: one anonymous, one `signInWithPassword`; fail loudly (not silently skip) if `SUPABASE_URL` is set but connection fails
-- [ ] 12.2 `tests/rls/owned-tables.test.js` — for `prenda`/`outfit`/`tip`/`outfit_prenda`/`prenda_tip`/`outfit_tip`: anon SELECT=0 rows, anon INSERT/UPDATE/DELETE fails or affects 0 rows; authenticated owner succeeds on own rows
-- [ ] 12.3 `tests/rls/lookup-tables.test.js` — `colores`/`tipo_prenda`: authenticated SELECT works, anon SELECT=0; `tipo_prenda` authenticated INSERT allowed, UPDATE/DELETE denied
-- [ ] 12.4 `tests/rls/security-invoker-footguns.test.js` — anon query of `outfit_v` returns 0 rows; anon `rpc('search_all')` returns 0 rows
-- [ ] 12.5 `tests/rls/composite-fk-guard.test.js` — seed a second test user; attempt cross-owner links via all 3 join tables; assert FK rejects
-- [ ] 12.6 `tests/rls/derived-values.test.js` — `outfit_v.estado` for 0/all-`En closet`/mixed garments; `nombre_sugerido` distinct+`orden`-ordered; direct `UPDATE prenda SET disponible=...` rejected
-- [ ] 12.7 Note in `.env.local.example` comment: CI MUST set `SUPABASE_URL` or this suite silently skips — run `SUPABASE_URL=... npx vitest run tests/rls` locally before merge
+- [x] 12.1 `tests/rls/setup.js` — two clients from the same anon key: one anonymous, one `signInWithPassword`; fail loudly (not silently skip) if `SUPABASE_URL` is set but connection fails
+- [x] 12.2 `tests/rls/owned-tables.test.js` — for `prenda`/`outfit`/`tip`/`outfit_prenda`/`prenda_tip`/`outfit_tip`: anon SELECT=0 rows, anon INSERT/UPDATE/DELETE fails or affects 0 rows; authenticated owner succeeds on own rows. Extended beyond the literal task text with two-real-users isolation per table (closes verify-report-pr4.md's flagged gap — no runtime proof existed before this PR).
+- [x] 12.3 `tests/rls/lookup-tables.test.js` — `colores`/`tipo_prenda`: authenticated SELECT works, anon SELECT=0; `tipo_prenda` authenticated INSERT allowed, UPDATE/DELETE denied. Confirms `colores`/`tipo_prenda` correctly carry no RLS-owner column (shared vocabulary, not owned data).
+- [x] 12.4 `tests/rls/security-invoker-footguns.test.js` — anon query of `outfit_v` returns 0 rows; anon `rpc('search_all')` returns 0 rows. Also asserts the authenticated-owner positive case so a fully-broken view/RPC can't pass by accident.
+- [x] 12.5 `tests/rls/composite-fk-guard.test.js` — seed a second test user; attempt cross-owner links via all 3 join tables using BOTH the RLS-bypassing service-role client and a real authenticated session; assert FK rejects (`23503`, not an RLS/permission error) in every case.
+- [x] 12.6 `tests/rls/derived-values.test.js` — `outfit_v.estado` for 0/all-`En closet`/mixed garments; `nombre_sugerido` distinct+`orden`-ordered; direct `UPDATE prenda SET disponible=...` rejected. All read through an authenticated (not service-role) client, the real app's access path.
+- [x] 12.7 Note in `.env.local.example` comment: CI MUST set `SUPABASE_URL` or this suite silently skips — run `SUPABASE_URL=... npx vitest run tests/rls` locally before merge. **Found already present** (added opportunistically during an earlier PR, referencing this exact task number) — verified via `git show HEAD:.env.local.example`, no new edit needed.
+- [x] 12.8 (bonus, found while writing 12.3/12.7's fixture cleanup) `supabase/migrations/0006_tipo_prenda_service_role_grant.sql` — fixes a real schema bug the RLS suite's own `afterAll` cleanup exposed: `service_role` had only SELECT+INSERT on `tipo_prenda` (0001 mirrored the intentional `authenticated` append-only restriction onto `service_role` too), so even a service-role admin script could not delete a mis-seeded row. `authenticated` keeps zero update/delete grant unchanged — this only grants `service_role` its own admin-correction capability, independent of RLS (which `service_role` already bypasses via `rolbypassrls`).
+
+## PR5 Fix Pass — closes verify-report-pr5.md's 3 carried-over CRITICALs (on `closet-app/pr5-rls-suite`, on top of the PR5 commits)
+
+verify-report-pr5.md's own PR5 slice had 0 CRITICAL findings, but flagged 3 CRITICALs carried over
+unchanged from verify-report-pr4.md (never touched by PR5, which was RLS-only). All 3 are closed here:
+
+- [x] FP.1 `tests/rls/dual-attachment.test.js` — real-DB proof (closes verify-report-pr5.md WARNING-1 /
+      the whole-change CRITICAL-3 "Dual Attachment" coverage gap): attach one tip to two outfits via
+      the real `linksRepo` (an authenticated client, not the admin/service-role client), detach it from
+      one, assert via a real admin query the other outfit's `outfit_tip` row survives untouched. The
+      only prior coverage (`tests/unit/ui/tip-attach.test.js`) asserted call shapes against fake repos
+      only, never real database behavior.
+- [x] FP.2 `public/sw.js` `staleWhileRevalidate(cache, request, fetcher)` + `tests/unit/sw-routing.test.js`
+      (closes whole-change CRITICAL-2/CRITICAL-3-carryover "service worker updates the cached shell on
+      new deploys"): replaces `cacheFirst()`, which served a cached response forever and only
+      invalidated on a manually-bumped `SHELL_CACHE` version string. Now serves the cached response
+      immediately (same offline-first speed) while kicking off a background fetch that updates the
+      cache for next time whenever the device is online — self-healing on every online visit, no manual
+      version bump required. RED (test importing the not-yet-existing function, confirmed failing) then
+      GREEN (implementation) as separate commits, same discipline as prior PRs.
+- [x] FP.3 `tests/unit/ui/prenda-detail.test.js` + `tests/unit/ui/outfit-detail.test.js` (closes
+      whole-change CRITICAL-4-carryover "reverse-lookup rendering has no automated test"): real
+      `renderPrendaDetail`/`renderOutfitDetail` wired against jsdom with fake/injectable
+      Supabase-shaped repos, same pattern PR2.5 established for `tests/unit/ui/app.test.js`. Covers
+      linked-outfits/linked-tips rendering from repo data, empty-state rendering, and click-to-navigate
+      callbacks. Non-vacuousness proven by temporarily removing each screen's `tipsSection` from the
+      DOM append call, observing all related assertions fail for the expected reason, then restoring
+      (`git checkout`) — no net source change was needed since the rendering code was already correct;
+      only the missing test coverage itself was the gap.
+
+Full suite after fix pass: **181/181** (169 baseline + 5 new `staleWhileRevalidate` unit tests + 1 new
+RLS integration test + 6 new detail-screen rendering tests), no regressions.
 
 ## Key Learnings
 
@@ -124,3 +157,4 @@ Neither PR1 nor PR2 ever created `ui/router.js` or an HTML entry point, so the a
 3. Estimated total changed lines (~2400–3000) exceed both the generic 400-line default and the session's raised 800-line budget, so chained PRs are recommended regardless of which budget applies.
 4. `security_invoker = on` is required on `outfit_v` and explicit on `search_all()` because the Postgres default (definer-style view execution) would silently bypass RLS — task 12.4 exists specifically to prove that footgun stays closed.
 5. Reverse-lookup UI for garments is deliberately split from garment CRUD (phase 6) into its own phase 10, matching the user's explicit build-order instruction even though both touch `prenda-detail.js`.
+6. `outfit_tip`'s primary key is `(outfit_id, tip_id)` (0003_joins.sql), so a single tip legitimately links to multiple outfits — this made the dual-attachment real-DB test (FP.1) provable within one join table, not just across the outfit/garment table pair.
