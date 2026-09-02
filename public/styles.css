@@ -271,6 +271,113 @@ textarea:focus-visible,
   color: var(--color-text-muted);
 }
 
+/* ---------- List-row cards (Prendas / Outfits) ---------- */
+
+.card--row {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+}
+
+.prenda-thumb.card-row-thumb,
+.card-row-icon {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  aspect-ratio: auto;
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.prenda-thumb.card-row-thumb {
+  padding: var(--space-1);
+}
+
+.card-row-icon {
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-row-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.card-row-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.card-row-body .card-title {
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-row-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+}
+
+.card-row-meta span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-row-meta svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  color: var(--color-accent);
+}
+
+.card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+  padding: var(--space-1) var(--space-2);
+  border-radius: 999px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-strong);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-accent);
+  white-space: nowrap;
+}
+
+.card-badge svg {
+  width: 10px;
+  height: 10px;
+}
+
+.card-badge--favorito svg {
+  color: #c8962c;
+}
+
+.card-badge--muted {
+  color: var(--color-text-muted);
+  border-color: var(--color-border);
+}
+
 /* ---------- Empty state ---------- */
 
 .empty-state {

@@ -1,5 +1,6 @@
 import { toOutfitViewModel } from "../../domain/mappers.js";
 import { joinList } from "../../domain/format.js";
+import { icons } from "../icons.js";
 
 // Renders the outfit list. outfitsRepo.list() reads outfit_v, so estado and
 // nombre_sugerido already come from Postgres -- no client-side re-derivation
@@ -40,17 +41,31 @@ export async function renderOutfitsList(container, { outfitsRepo, onSelect, onCr
   for (const row of outfits) {
     const vm = toOutfitViewModel(row);
     const item = document.createElement("li");
-    item.className = "outfit-card card";
+    item.className = "outfit-card card card--row";
+
+    const avatar = document.createElement("div");
+    avatar.className = "card-row-icon";
+    avatar.innerHTML = icons.hanger;
+    item.append(avatar);
+
+    const body = document.createElement("div");
+    body.className = "card-row-body";
 
     const title = document.createElement("strong");
     title.className = "card-title";
     title.textContent = vm.titulo || vm.nombreSugerido || "Outfit sin nombre";
 
     const meta = document.createElement("span");
-    meta.className = "card-meta";
-    meta.textContent = `${vm.estado} · ${joinList(vm.temporada)}`;
+    meta.className = "card-row-meta";
+    meta.innerHTML = `${icons.tag}<span>${joinList(vm.temporada) || "Atemporal"}</span>`;
 
-    item.append(title, meta);
+    body.append(title, meta);
+
+    const badge = document.createElement("span");
+    badge.className = vm.estado === "Disponible" ? "card-badge" : "card-badge card-badge--muted";
+    badge.innerHTML = `<span>${vm.estado}</span>`;
+
+    item.append(body, badge);
     item.addEventListener("click", () => onSelect?.(row.id));
     list.append(item);
   }

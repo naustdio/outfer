@@ -1,5 +1,6 @@
 import { toPrendaViewModel } from "../../domain/mappers.js";
 import { formatCurrency, joinList } from "../../domain/format.js";
+import { icons } from "../icons.js";
 
 // Renders the garment list into `container`. No client-side filtering or
 // re-derivation here -- filters go through prendasRepo.list() and
@@ -45,40 +46,49 @@ export async function renderPrendasList(
   for (const row of prendas) {
     const vm = toPrendaViewModel(row, { coloresCatalog: colores });
     const item = document.createElement("li");
-    item.className = "prenda-card card";
+    item.className = "prenda-card card card--row";
 
-    // Thumbnail: first photo in fotos[], or a neutral empty-state block --
+    // Thumbnail: first photo in fotos[], or a rounded icon placeholder --
     // a garment with zero photos is the common case at first (this task's
     // brief) and must never break the card layout. The bucket is private
     // (src/data/storage.js), so a fresh signed URL is fetched per card on
     // every render rather than cached/stored.
-    const thumb = document.createElement("div");
-    thumb.className = "prenda-thumb";
     const firstFoto = row.fotos?.[0];
+    let avatar = makeIconAvatar();
     if (firstFoto && storageRepo) {
+      const thumb = document.createElement("div");
+      thumb.className = "prenda-thumb card-row-thumb";
       const img = document.createElement("img");
       img.alt = vm.nombre;
       thumb.append(img);
+      avatar = thumb;
       storageRepo
         .getPrendaFotoUrl(firstFoto)
         .then((url) => {
           img.src = url;
         })
-        .catch(() => thumb.classList.add("prenda-thumb-empty"));
-    } else {
-      thumb.classList.add("prenda-thumb-empty");
+        .catch(() => avatar.replaceWith(makeIconAvatar()));
     }
-    item.append(thumb);
+    item.append(avatar);
+
+    const body = document.createElement("div");
+    body.className = "card-row-body";
 
     const title = document.createElement("strong");
     title.className = "card-title";
     title.textContent = vm.nombre;
 
     const meta = document.createElement("span");
-    meta.className = "card-meta";
-    meta.textContent = `${vm.tipoPrenda ?? ""} · ${joinList(vm.colores.map((c) => c.nombre))} · ${formatCurrency(vm.precio)}`;
+    meta.className = "card-row-meta";
+    meta.innerHTML = `${icons.tag}<span>${vm.tipoPrenda ?? "Prenda"} · ${joinList(vm.colores.map((c) => c.nombre))}</span>`;
 
-    item.append(title, meta);
+    body.append(title, meta);
+
+    const badge = document.createElement("span");
+    badge.className = row.favorito ? "card-badge card-badge--favorito" : "card-badge";
+    badge.innerHTML = `${row.favorito ? icons.star : ""}<span>${formatCurrency(vm.precio)}</span>`;
+
+    item.append(body, badge);
     item.addEventListener("click", () => onSelect?.(row.id));
     list.append(item);
   }
@@ -86,4 +96,11 @@ export async function renderPrendasList(
   screen.append(list);
   container.append(screen);
   return list;
+}
+
+function makeIconAvatar() {
+  const box = document.createElement("div");
+  box.className = "card-row-icon";
+  box.innerHTML = icons.tag;
+  return box;
 }
