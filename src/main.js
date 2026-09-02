@@ -230,3 +230,14 @@ const app = createApp({ client, root, router });
 router.setGuard((path) => app.gate.guard(path));
 
 app.boot();
+
+// pwa-shell "Installability": registering the service worker (alongside
+// public/manifest.json's <link> in index.html) is what makes a supporting
+// browser's installability criteria met. Registered as a module (matches
+// public/sw.js being an ES module -- it exports shouldHandle for
+// tests/unit/sw-routing.test.js) and guarded by feature detection, since
+// not every browser supports service workers and a boot-time throw here
+// must never block the rest of the app from loading.
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/sw.js", { type: "module" }).catch(() => {});
+}
