@@ -20,7 +20,20 @@ import { makeAuth } from "./data/auth.js";
 import { createSessionGate } from "./ui/session-gate.js";
 import { renderLogin } from "./ui/screens/login.js";
 
-export function createApp({ supabaseUrl, supabaseAnonKey, root, router, client: injectedClient }) {
+export function createApp({
+  supabaseUrl,
+  supabaseAnonKey,
+  root,
+  router,
+  client: injectedClient,
+  // Optional { show(), hide() } pair, injected by src/main.js, so this file
+  // stays framework/DOM-agnostic about what "persistent nav chrome" even is
+  // -- it just calls the hook at the two auth-state transition points
+  // (showLogin() and the SIGNED_IN branch below). Defaults to no-ops so
+  // every existing createApp({ ... }) call (tests/unit/ui/app.test.js
+  // included) keeps working unmodified without passing `nav`.
+  nav: { show: showNav = () => {}, hide: hideNav = () => {} } = {},
+}) {
   const client = injectedClient ?? createSupabaseClient(supabaseUrl, supabaseAnonKey);
   const auth = makeAuth(client);
   const gate = createSessionGate({ auth, router });
@@ -35,6 +48,7 @@ export function createApp({ supabaseUrl, supabaseAnonKey, root, router, client: 
     // by manually signing in against a real browser + local Supabase Auth
     // after the CRITICAL-A fix, not by any test (see app.test.js's header
     // comment: this class was untested before this bug and its first fix).
+    hideNav();
     renderLogin(root, { auth });
   }
 
@@ -44,6 +58,11 @@ export function createApp({ supabaseUrl, supabaseAnonKey, root, router, client: 
       showLogin();
       return;
     }
+    // A page load/reload with an existing session (e.g. hitting F5 on
+    // /outfits already signed in) never fires SIGNED_IN -- it goes straight
+    // through this branch, so the nav has to be shown here too, not just in
+    // the SIGNED_IN handler below.
+    showNav();
     router.start();
   }
 
@@ -62,6 +81,7 @@ export function createApp({ supabaseUrl, supabaseAnonKey, root, router, client: 
       // triggers), so a follow-up navigate() call to that same default path
       // rendered it a second time -- caught by manually exercising this
       // fix in a real browser, not by any test.
+      showNav();
       router.start(gate.consumeIntendedPath());
     } else if (event === "SIGNED_OUT") {
       router.reset();
