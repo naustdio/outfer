@@ -1,0 +1,959 @@
+/* Closet — editorial visual design system.
+   Palette: warm beige/cream base across the whole app, EXCEPT the outfit
+   detail screen, which inverts to a dark "showcase" surface (see the
+   [data-theme="dark"] rules under .outfit-detail-screen below).
+   Typography: Libre Caslon Text (display/serif) for titles + Geist (UI sans)
+   for everything else. No build step — plain CSS, hand-authored classes
+   hooked into src/ui/screens/*.js via className/class attributes. */
+
+:root {
+  --color-bg: #efe6d2;
+  --color-bg-raised: #f6f0e2;
+  --color-text: #1a1714;
+  --color-text-muted: #5a5248;
+  --color-border: #d8cba8;
+  --color-border-strong: #c2b284;
+  --color-accent: #6b4a2f;
+  --color-danger: #8a2e1f;
+  --color-danger-bg: #f3ddd6;
+
+  --color-bg-dark: #141210;
+  --color-bg-dark-raised: #1c1915;
+  --color-text-dark: #f2ead8;
+  --color-text-dark-muted: #bfb39c;
+  --color-border-dark: #3a352c;
+
+  --font-display: "Libre Caslon Text", Georgia, "Times New Roman", serif;
+  --font-ui: "Geist", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --radius: 4px;
+  --radius-sm: 3px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  min-height: 100vh;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--space-5) var(--space-4) var(--space-7);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0 0 var(--space-4);
+  color: inherit;
+}
+
+h1 {
+  font-size: 28px;
+}
+
+h2 {
+  font-size: 24px;
+}
+
+h3 {
+  font-size: 15px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-family: var(--font-ui);
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+p {
+  margin: 0 0 var(--space-3);
+}
+
+a {
+  color: inherit;
+}
+
+/* Focus states — every interactive element gets one. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.outfit-detail-screen :is(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline-color: var(--color-text-dark);
+}
+
+/* ---------- Eyebrow / label typography ---------- */
+
+.eyebrow {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-1);
+}
+
+.outfit-detail-screen .eyebrow {
+  color: var(--color-text-dark-muted);
+}
+
+/* ---------- Buttons ---------- */
+
+.btn {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.1s ease, opacity 0.15s ease;
+}
+
+.btn:hover {
+  background: var(--color-border);
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-primary {
+  background: var(--color-text);
+  border-color: var(--color-text);
+  color: var(--color-bg);
+}
+
+.btn-primary:hover {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.btn-danger {
+  background: var(--color-danger-bg);
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.btn-danger:hover {
+  background: var(--color-danger);
+  color: var(--color-danger-bg);
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  padding-left: 0;
+  padding-right: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.btn-ghost:hover {
+  background: transparent;
+  color: var(--color-accent);
+}
+
+.btn-block {
+  width: 100%;
+}
+
+/* ---------- Screen shell ---------- */
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.screen-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--space-4);
+}
+
+.screen-header h1,
+.screen-header h2 {
+  margin: 0;
+}
+
+.screen-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+/* ---------- Card lists (prendas / outfits / tips) ---------- */
+
+.card-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg-raised);
+  padding: var(--space-4);
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.1s ease;
+}
+
+.card:hover {
+  border-color: var(--color-border-strong);
+  transform: translateY(-1px);
+}
+
+.card-title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.card-meta {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Empty state ---------- */
+
+.empty-state {
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius);
+  padding: var(--space-5);
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  list-style: none;
+}
+
+.outfit-detail-screen .empty-state {
+  border-color: var(--color-border-dark);
+  color: var(--color-text-dark-muted);
+}
+
+/* ---------- Definition lists (detail fields) ---------- */
+
+.detail-fields {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+}
+
+.detail-fields dt {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+  padding-top: 2px;
+}
+
+.detail-fields dd {
+  margin: 0;
+  font-size: 14px;
+}
+
+.outfit-detail-screen .detail-fields dt {
+  color: var(--color-text-dark-muted);
+}
+
+/* ---------- Forms ---------- */
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  font-family: var(--font-ui);
+  font-size: 14px;
+  color: var(--color-text);
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
+  width: 100%;
+}
+
+textarea {
+  min-height: 80px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+fieldset {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+}
+
+fieldset label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: 13px;
+}
+
+.login-form label,
+.checkbox-field {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 14px;
+}
+
+.form-actions {
+  display: flex;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+}
+
+.form-errors {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.form-errors:empty {
+  display: none;
+}
+
+.form-errors li {
+  color: var(--color-danger);
+  background: var(--color-danger-bg);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  font-size: 13px;
+}
+
+/* ---------- Login screen ---------- */
+
+.login-screen {
+  min-height: calc(100vh - var(--space-5) - var(--space-7));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-form {
+  width: 100%;
+  max-width: 360px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg-raised);
+  padding: var(--space-6) var(--space-5);
+}
+
+.login-form h1 {
+  text-align: center;
+}
+
+.login-error {
+  color: var(--color-danger);
+  background: var(--color-danger-bg);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  font-size: 13px;
+  margin: 0;
+}
+
+.login-error[hidden] {
+  display: none;
+}
+
+/* ---------- Reverse-lookup / editorial grid modules ---------- */
+/* prenda-detail.js: "outfits using this garment" reads as a small magazine
+   "how to style this" module. */
+
+.style-module {
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-4);
+}
+
+.style-module-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.style-module-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--space-3);
+}
+
+.style-module-tile {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg-raised);
+  padding: var(--space-3);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: border-color 0.15s ease, transform 0.1s ease;
+}
+
+.style-module-tile:hover {
+  border-color: var(--color-border-strong);
+  transform: translateY(-1px);
+}
+
+/* ---------- Attachment sections (tip-form.js) ---------- */
+
+.attach-section {
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.attach-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.attach-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
+  font-size: 13px;
+}
+
+.attach-form {
+  display: flex;
+  flex-direction: row;
+  gap: var(--space-2);
+}
+
+.attach-form select {
+  flex: 1;
+}
+
+/* ---------- Search ---------- */
+
+.search-form input {
+  font-size: 16px;
+  padding: var(--space-3) var(--space-4);
+}
+
+.search-status {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  min-height: 1em;
+}
+
+.search-results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.search-group h3 {
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--space-2);
+}
+
+.search-group ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.search-hit {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg-raised);
+  padding: var(--space-3);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.search-hit:hover {
+  border-color: var(--color-border-strong);
+}
+
+.search-hit strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 15px;
+}
+
+.search-hit span {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Outfit detail — the one dark "showcase" screen ---------- */
+/* Full-bleed: the whole page inverts, not just an inset card, so this reads
+   as the app's one deliberate showcase moment. body:has() drives the
+   full-viewport background; the screen element itself also carries the dark
+   background/color as a fallback and so it still looks correct standalone
+   (e.g. in the component preview harness). */
+
+body:has(.outfit-detail-screen) {
+  background: var(--color-bg-dark);
+}
+
+.outfit-detail-screen {
+  background: var(--color-bg-dark);
+  color: var(--color-text-dark);
+  margin: calc(var(--space-5) * -1) calc(var(--space-4) * -1) calc(var(--space-7) * -1);
+  padding: var(--space-5) var(--space-4) var(--space-7);
+}
+
+.outfit-detail-screen h1,
+.outfit-detail-screen h2,
+.outfit-detail-screen h3 {
+  color: var(--color-text-dark);
+}
+
+.outfit-detail-screen .screen-header {
+  border-bottom-color: var(--color-border-dark);
+}
+
+.outfit-detail-screen .btn {
+  background: var(--color-bg-dark-raised);
+  border-color: var(--color-border-dark);
+  color: var(--color-text-dark);
+}
+
+.outfit-detail-screen .btn:hover {
+  background: #26221c;
+  border-color: #4a4436;
+}
+
+.outfit-detail-screen .btn-primary {
+  background: var(--color-text-dark);
+  border-color: var(--color-text-dark);
+  color: var(--color-bg-dark);
+}
+
+.outfit-detail-screen .btn-primary:hover {
+  background: #d8cba8;
+  border-color: #d8cba8;
+}
+
+.outfit-detail-screen .btn-danger {
+  background: #2e1b16;
+  border-color: #a8412f;
+  color: #f3ddd6;
+}
+
+.outfit-detail-screen .btn-danger:hover {
+  background: #a8412f;
+  color: #2e1b16;
+}
+
+/* Flat-lay-style breakdown grid: linked garments below the hero content. */
+
+.flatlay {
+  border-top: 1px solid var(--color-border-dark);
+  padding-top: var(--space-4);
+}
+
+.flatlay-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.flatlay-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: var(--space-3);
+}
+
+.flatlay-item {
+  border: 1px solid var(--color-border-dark);
+  border-radius: var(--radius);
+  background: var(--color-bg-dark-raised);
+  padding: var(--space-3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: 13px;
+}
+
+.flatlay-item span {
+  font-weight: 600;
+}
+
+.flatlay-add {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.flatlay-add select {
+  flex: 1;
+  background: var(--color-bg-dark-raised);
+  border-color: var(--color-border-dark);
+  color: var(--color-text-dark);
+}
+
+.outfit-detail-screen input,
+.outfit-detail-screen select,
+.outfit-detail-screen textarea {
+  background: var(--color-bg-dark-raised);
+  border-color: var(--color-border-dark);
+  color: var(--color-text-dark);
+}
+
+.outfit-detail-screen .empty-state {
+  color: var(--color-text-dark-muted);
+}
+
+/* ---------- Persistent bottom navigation (nav-bar.js) ---------- */
+/* App chrome, not screen content -- stays on the light beige palette even
+   when the current screen is the dark outfit-detail showcase (unlike
+   .outfit-detail-screen's own elements, nothing here reads the *-dark
+   tokens), so it stays legible pinned at the bottom of that screen too. */
+
+.app-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  background: var(--color-bg-raised);
+  border-top: 1px solid var(--color-border);
+  padding: var(--space-2) var(--space-3) calc(var(--space-2) + env(safe-area-inset-bottom, 0px));
+}
+
+.app-nav[hidden] {
+  display: none;
+}
+
+/* Extra breathing room so the fixed nav never overlaps the last bit of
+   scrollable screen content. Scoped to when the nav is actually visible
+   (authenticated screens) so the login screen's own centered layout is
+   unaffected. */
+body:has(#app-nav:not([hidden])) #app {
+  padding-bottom: calc(var(--space-7) + 56px);
+}
+
+.app-nav-list {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  max-width: 720px;
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-1);
+}
+
+.app-nav-list li {
+  flex: 1;
+  display: flex;
+}
+
+.app-nav-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  text-decoration: none;
+  border: none;
+  background: transparent;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  padding: var(--space-2) var(--space-1);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.app-nav-tab:hover {
+  color: var(--color-text);
+}
+
+.app-nav-tab.is-active {
+  position: relative;
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+.app-nav-tab.is-active::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--color-accent);
+}
+
+.app-nav-signout {
+  color: var(--color-text-muted);
+}
+
+/* ---------- Garment photos (prenda.fotos) ---------- */
+/* Clean product-style photography on a neutral background, matching the
+   editorial direction already established for .card / .empty-state above.
+   Shared by the form's upload UI, the list card thumbnail, and the detail
+   gallery. */
+
+.prenda-thumb {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg-raised);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-3);
+}
+
+.prenda-thumb img {
+  /* contain, not cover: this is product photography (the whole garment,
+     centered, breathing room on a neutral background), not a crop-to-fill
+     hero image -- cover was zooming into a random slice of the photo. */
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.prenda-thumb-empty {
+  border-style: dashed;
+  border-color: var(--color-border-strong);
+}
+
+.prenda-thumb-empty::after {
+  content: "Sin foto";
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}
+
+.fotos-field {
+  gap: var(--space-2);
+}
+
+.fotos-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.fotos-empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.foto-tile {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg-raised);
+  overflow: hidden;
+}
+
+.foto-tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  padding: 4px;
+}
+
+.foto-tile-pending {
+  border-style: dashed;
+  border-color: var(--color-border-strong);
+}
+
+.foto-remove {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  border: none;
+  border-radius: 0;
+  background: rgba(26, 23, 20, 0.72);
+  color: var(--color-text-dark);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 0;
+  cursor: pointer;
+}
+
+.fotos-input {
+  border: 1px dashed var(--color-border-strong);
+  background: transparent;
+  cursor: pointer;
+}
+
+.upload-status {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.upload-status[hidden] {
+  display: none;
+}
+
+.foto-gallery-main {
+  width: 100%;
+  max-height: 420px;
+  aspect-ratio: 4 / 3;
+  object-fit: contain;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg-raised);
+  display: block;
+  padding: var(--space-4);
+}
+
+.foto-gallery-strip {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  margin-top: var(--space-2);
+}
+
+.foto-gallery-thumb {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  flex: none;
+}
+
+.foto-gallery-thumb:hover {
+  border-color: var(--color-border-strong);
+}
+
+/* ---------- Motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.001ms !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+/* ---------- Small screens ---------- */
+
+@media (max-width: 480px) {
+  #app {
+    padding: var(--space-4) var(--space-3) var(--space-6);
+  }
+
+  .attach-form {
+    flex-direction: column;
+  }
+}

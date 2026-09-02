@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { validatePrenda } from "../../../src/domain/validation.js";
+import { validatePrenda, validateOutfit, validateTip } from "../../../src/domain/validation.js";
 
 const validPrenda = {
   nombre: "Camisa azul",
@@ -74,6 +74,54 @@ describe("validatePrenda", () => {
       ...validPrenda,
       necesita_reparacion: true,
       tipo_dano: ["Boton"],
+    });
+    expect(result.valid).toBe(true);
+  });
+});
+
+// outfit-composition "Outfit Fields": titulo is the only DB-required
+// (not null) writable field on `outfit` (0002_entities.sql) -- estado and
+// nombre_sugerido are derived and never validated as form input here.
+describe("validateOutfit", () => {
+  it("accepts a minimal valid outfit", () => {
+    expect(validateOutfit({ titulo: "Casual viernes" })).toEqual({ valid: true, errors: {} });
+  });
+
+  it("requires titulo", () => {
+    const result = validateOutfit({ titulo: "" });
+    expect(result.valid).toBe(false);
+    expect(result.errors.titulo).toBeDefined();
+  });
+
+  it("accepts optional imagen_inspiracion, notas, and temporada", () => {
+    const result = validateOutfit({
+      titulo: "Casual viernes",
+      imagen_inspiracion: "https://example.com/img.jpg",
+      notas: "Para la oficina",
+      temporada: ["Verano", "Otono"],
+    });
+    expect(result.valid).toBe(true);
+  });
+});
+
+// styling-tips "Tip Fields and CRUD": "A tip MUST record at least a text
+// body" -- `tip` is the only not-null writable column (0002_entities.sql).
+describe("validateTip", () => {
+  it("accepts a minimal valid tip", () => {
+    expect(validateTip({ tip: "Combina colores neutros" })).toEqual({ valid: true, errors: {} });
+  });
+
+  it("requires tip text", () => {
+    const result = validateTip({ tip: "" });
+    expect(result.valid).toBe(false);
+    expect(result.errors.tip).toBeDefined();
+  });
+
+  it("accepts optional descripcion and categoria", () => {
+    const result = validateTip({
+      tip: "Combina colores neutros",
+      descripcion: "Funciona con la mayoria de prendas",
+      categoria: ["Colores", "Ocasion"],
     });
     expect(result.valid).toBe(true);
   });

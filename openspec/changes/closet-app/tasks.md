@@ -60,48 +60,95 @@ Chain strategy: pending
 
 ## Phase 5: Auth / Session UI
 
-- [ ] 5.1 RED+GREEN `tests/unit/ui/session-gate.test.js` + `src/ui/session-gate.js` (no session → redirect login)
-- [ ] 5.2 `src/ui/screens/login.js` (email/password) + `src/app.js` boot wiring
+- [x] 5.1 RED+GREEN `tests/unit/ui/session-gate.test.js` + `src/ui/session-gate.js` (no session → redirect login)
+- [x] 5.2 `src/ui/screens/login.js` (email/password) + `src/app.js` boot wiring
 
 ## Phase 6: Garment CRUD UI
 
-- [ ] 6.1 RED+GREEN `tests/unit/ui/prenda-form.test.js` — reject 4th color, reject damage flag without `tipo_dano`
-- [ ] 6.2 `src/ui/screens/prendas-list.js`, `prenda-detail.js`, `prenda-form.js` (create/edit/delete)
+- [x] 6.1 RED+GREEN `tests/unit/ui/prenda-form.test.js` — reject 4th color, reject damage flag without `tipo_dano`
+- [x] 6.2 `src/ui/screens/prendas-list.js`, `prenda-detail.js`, `prenda-form.js` (create/edit/delete)
+- [x] 6.3 (fix pass, post-verify) RED+GREEN `tests/unit/ui/prenda-form.test.js` DOM tests + `src/ui/screens/prenda-form.js` — mount `talla`/`temporada`/`estado`/`favorito` inputs and add them to `readPrendaFormValues`, closing verify-report-pr2.md CRITICAL-1 (silent data loss on edit) and CRITICAL-2 (unsettable spec-required fields)
+- [x] 6.4 (fix pass #2, post-re-verify) RED+GREEN `tests/unit/ui/prenda-form.test.js` DOM tests + `src/ui/screens/prenda-form.js` — mount `detalle_dano` input in the damage fieldset, pre-fill on edit, refresh stale "untested"/"no branching" comments, closing verify-report-pr2.md CRITICAL-1-residual (silent data loss of `detalle_dano` on edit)
 
-## Phase 7: Outfit CRUD UI + Linking
+## Phase 6.5: Router & Entry Point (PR2.5 — closes verify-report-pr2.md CRITICAL-3)
 
-- [ ] 7.1 RED+GREEN `tests/unit/ui/outfit-link.test.js` — link/unlink triggers `outfit_v` refetch, no client-side recompute
-- [ ] 7.2 `src/ui/screens/outfits-list.js`, `outfit-detail.js`, `outfit-form.js` (CRUD, link/unlink, render `estado`/`nombre_sugerido`)
+Neither PR1 nor PR2 ever created `ui/router.js` or an HTML entry point, so the app could not actually load in a browser despite passing tests — flagged CRITICAL across three independent verify passes on PR2. This phase closes that planning gap without adding any new screens/features. `ui/transitions.js` + GSAP transitions (also listed in design.md's target file tree) remain deliberately out of scope here; they land with the visual-design change.
 
-## Phase 8: Tips CRUD UI + Dual Attachment
+- [x] 6.5.1 RED+GREEN `tests/unit/ui/router.test.js` + `src/ui/router.js` — hash-based router: pure `parseHash`/`compileRoute`/`matchRoute` (path matching, `:param` extraction, route-order precedence) plus `createRouter()` DOM/window wiring (`start`/`navigate`/`reset`/`setGuard`/`redirectToLogin`/`allow`), window injectable for tests
+- [x] 6.5.2 `src/main.js` — real browser entry point: builds the Supabase client + `prendasRepo`/`catalogosRepo`, registers `/prendas`, `/prendas/new`, `/prendas/:id`, `/prendas/:id/edit` routes against the existing screens, wires `session-gate`'s `guard` into the router via `router.setGuard`, calls `createApp(...).boot()`. `src/app.js` extended with an optional `client` param so main.js and `createApp` share one Supabase client instance.
+- [x] 6.5.3 `public/index.html` — HTML shell (`#app` mount container, loads `src/main.js` as an ES module + a gitignored `public/config.js` for runtime Supabase config, template at `public/config.example.js`) — deliberately unstyled, no `app.css` exists yet
+- [x] 6.5.4 `package.json` `dev` script + `scripts/dev-server.mjs` — zero-dependency static file server for local manual verification (no bundler introduced); serves `/src/*` from the repo's `src/` and everything else from `public/`, mirroring the production doc-root layout from design.md's target file tree
 
-- [ ] 8.1 RED+GREEN `tests/unit/ui/tip-attach.test.js` — detach from one relation leaves the other intact
-- [ ] 8.2 `src/ui/screens/tips-list.js`, `tip-form.js` (CRUD, attach/detach outfit+garment independently)
+## Phase 7: Outfit CRUD UI + Linking (PR3)
 
-## Phase 9: Unified Search
+- [x] 7.1 RED+GREEN `tests/unit/ui/outfit-link.test.js` — link/unlink triggers `outfit_v` refetch, no client-side recompute
+- [x] 7.2 `src/ui/screens/outfits-list.js`, `outfit-detail.js`, `outfit-form.js` (CRUD, link/unlink, render `estado`/`nombre_sugerido`)
+  - Additive, not a listed subtask but required to implement 7.1/7.2: `src/data/outfits.js` gained `getWithPrendas(id)` (RED+GREEN in `tests/unit/data/outfits.test.js`) alongside the existing `getById()` (left byte-identical) — `outfit_v` has no linked-garment ids, only a count, so the detail/unlink UI needs a second query. `src/domain/validation.js` gained `validateOutfit`/`validateTip` (RED+GREEN in `tests/unit/domain/validation.test.js`), matching the design-intended "validation.js mirrors DB constraints" role already established for `validatePrenda`.
 
-- [ ] 9.1 RED+GREEN `tests/unit/ui/search.test.js` — groups `SearchHit[]` by `tipo`; empty groups on no match
-- [ ] 9.2 `src/ui/screens/search.js` wired to `data/search.js`
+## Phase 8: Tips CRUD UI + Dual Attachment (PR3)
 
-## Phase 10: Reverse-Lookup Displays
+- [x] 8.1 RED+GREEN `tests/unit/ui/tip-attach.test.js` — detach from one relation leaves the other intact
+- [x] 8.2 `src/ui/screens/tips-list.js`, `tip-form.js` (CRUD, attach/detach outfit+garment independently)
+  - No separate `tip-detail.js` exists (per this task list) — `tip-form.js` in edit mode doubles as the attachment-management view and also carries the delete button (styling-tips "Delete a tip"), same cascade-FK reasoning as `prenda-detail.js`/`outfit-detail.js`.
+  - `src/main.js` wired with `/outfits`, `/outfits/new`, `/outfits/:id`, `/outfits/:id/edit`, `/tips`, `/tips/new`, `/tips/:id` routes against the new screens, following the same route-ordering convention (static/longer patterns before `:id`) established in Phase 6.5.
 
-- [ ] 10.1 `src/ui/screens/prenda-detail.js` — add linked-outfits + linked-tips sections, empty-state when none
-- [ ] 10.2 `src/ui/components/empty-state.js` reused for both lookup sections
+## Phase 9: Unified Search (PR4)
 
-## Phase 11: PWA Shell
+- [x] 9.1 RED+GREEN `tests/unit/ui/search.test.js` — groups `SearchHit[]` by `tipo`; empty groups on no match
+- [x] 9.2 `src/ui/screens/search.js` wired to `data/search.js` — mounted as its own `/search` route in `src/main.js` (no persistent nav bar exists anywhere in the app yet, see Phase 6.5/PR3 notes; consistent with the existing hash-navigation convention rather than introducing new UI chrome)
 
-- [ ] 11.1 RED+GREEN `tests/unit/sw-routing.test.js` + `public/sw.js` — pure `shouldHandle(request)`; `*.supabase.co` returns `false`
-- [ ] 11.2 `public/manifest.json` (icons 192/512/maskable, `standalone`) + `sw.js` install/activate/fetch wired to `shouldHandle`
+## Phase 10: Reverse-Lookup Displays (PR4)
+
+- [x] 10.1 `src/ui/screens/prenda-detail.js` — add linked-outfits + linked-tips sections, empty-state when none. `src/ui/screens/outfit-detail.js` also gained a linked-tips section (styling-tips "each entity's detail view MUST show the tip" — closes verify-report-pr3.md's WARNING-2/CRITICAL flag that outfit-detail.js rendered no tip list at all). Additive, not a listed subtask but required: `src/data/outfits.js` gained `getLinkedTipIds(id)` (RED+GREEN in `tests/unit/data/outfits.test.js`) so outfit-detail.js can resolve its own linked tip ids, mirroring `prendasRepo.getById()`'s existing `{ prenda, outfits, tips }` shape (design.md Interfaces/Contracts, built in PR2) that already supplies prenda-detail.js's reverse-lookup ids without any new method.
+- [x] 10.2 `src/ui/components/empty-state.js` reused for both lookup sections on `prenda-detail.js` (existing empty-state `<li>`s elsewhere predate this component and were left as-is, matching the "don't touch what Phase 10 doesn't own" convention)
+
+## Phase 11: PWA Shell (PR4)
+
+- [x] 11.1 RED+GREEN `tests/unit/sw-routing.test.js` + `public/sw.js` — pure `shouldHandle(request, origin)`; cross-origin (incl. `*.supabase.co` and the local `127.0.0.1:56321` dev stack) returns `false`
+- [x] 11.2 `public/manifest.json` (icons 192/512/maskable placeholder PNGs under `public/icons/`, `standalone`) + `sw.js` install/activate/fetch wired to `shouldHandle`, registered from `src/main.js` as `{ type: "module" }`
 
 ## Phase 12: RLS Integration Test Suite (`tests/rls/`, requires `SUPABASE_URL`)
 
-- [ ] 12.1 `tests/rls/setup.js` — two clients from the same anon key: one anonymous, one `signInWithPassword`; fail loudly (not silently skip) if `SUPABASE_URL` is set but connection fails
-- [ ] 12.2 `tests/rls/owned-tables.test.js` — for `prenda`/`outfit`/`tip`/`outfit_prenda`/`prenda_tip`/`outfit_tip`: anon SELECT=0 rows, anon INSERT/UPDATE/DELETE fails or affects 0 rows; authenticated owner succeeds on own rows
-- [ ] 12.3 `tests/rls/lookup-tables.test.js` — `colores`/`tipo_prenda`: authenticated SELECT works, anon SELECT=0; `tipo_prenda` authenticated INSERT allowed, UPDATE/DELETE denied
-- [ ] 12.4 `tests/rls/security-invoker-footguns.test.js` — anon query of `outfit_v` returns 0 rows; anon `rpc('search_all')` returns 0 rows
-- [ ] 12.5 `tests/rls/composite-fk-guard.test.js` — seed a second test user; attempt cross-owner links via all 3 join tables; assert FK rejects
-- [ ] 12.6 `tests/rls/derived-values.test.js` — `outfit_v.estado` for 0/all-`En closet`/mixed garments; `nombre_sugerido` distinct+`orden`-ordered; direct `UPDATE prenda SET disponible=...` rejected
-- [ ] 12.7 Note in `.env.local.example` comment: CI MUST set `SUPABASE_URL` or this suite silently skips — run `SUPABASE_URL=... npx vitest run tests/rls` locally before merge
+- [x] 12.1 `tests/rls/setup.js` — two clients from the same anon key: one anonymous, one `signInWithPassword`; fail loudly (not silently skip) if `SUPABASE_URL` is set but connection fails
+- [x] 12.2 `tests/rls/owned-tables.test.js` — for `prenda`/`outfit`/`tip`/`outfit_prenda`/`prenda_tip`/`outfit_tip`: anon SELECT=0 rows, anon INSERT/UPDATE/DELETE fails or affects 0 rows; authenticated owner succeeds on own rows. Extended beyond the literal task text with two-real-users isolation per table (closes verify-report-pr4.md's flagged gap — no runtime proof existed before this PR).
+- [x] 12.3 `tests/rls/lookup-tables.test.js` — `colores`/`tipo_prenda`: authenticated SELECT works, anon SELECT=0; `tipo_prenda` authenticated INSERT allowed, UPDATE/DELETE denied. Confirms `colores`/`tipo_prenda` correctly carry no RLS-owner column (shared vocabulary, not owned data).
+- [x] 12.4 `tests/rls/security-invoker-footguns.test.js` — anon query of `outfit_v` returns 0 rows; anon `rpc('search_all')` returns 0 rows. Also asserts the authenticated-owner positive case so a fully-broken view/RPC can't pass by accident.
+- [x] 12.5 `tests/rls/composite-fk-guard.test.js` — seed a second test user; attempt cross-owner links via all 3 join tables using BOTH the RLS-bypassing service-role client and a real authenticated session; assert FK rejects (`23503`, not an RLS/permission error) in every case.
+- [x] 12.6 `tests/rls/derived-values.test.js` — `outfit_v.estado` for 0/all-`En closet`/mixed garments; `nombre_sugerido` distinct+`orden`-ordered; direct `UPDATE prenda SET disponible=...` rejected. All read through an authenticated (not service-role) client, the real app's access path.
+- [x] 12.7 Note in `.env.local.example` comment: CI MUST set `SUPABASE_URL` or this suite silently skips — run `SUPABASE_URL=... npx vitest run tests/rls` locally before merge. **Found already present** (added opportunistically during an earlier PR, referencing this exact task number) — verified via `git show HEAD:.env.local.example`, no new edit needed.
+- [x] 12.8 (bonus, found while writing 12.3/12.7's fixture cleanup) `supabase/migrations/0006_tipo_prenda_service_role_grant.sql` — fixes a real schema bug the RLS suite's own `afterAll` cleanup exposed: `service_role` had only SELECT+INSERT on `tipo_prenda` (0001 mirrored the intentional `authenticated` append-only restriction onto `service_role` too), so even a service-role admin script could not delete a mis-seeded row. `authenticated` keeps zero update/delete grant unchanged — this only grants `service_role` its own admin-correction capability, independent of RLS (which `service_role` already bypasses via `rolbypassrls`).
+
+## PR5 Fix Pass — closes verify-report-pr5.md's 3 carried-over CRITICALs (on `closet-app/pr5-rls-suite`, on top of the PR5 commits)
+
+verify-report-pr5.md's own PR5 slice had 0 CRITICAL findings, but flagged 3 CRITICALs carried over
+unchanged from verify-report-pr4.md (never touched by PR5, which was RLS-only). All 3 are closed here:
+
+- [x] FP.1 `tests/rls/dual-attachment.test.js` — real-DB proof (closes verify-report-pr5.md WARNING-1 /
+      the whole-change CRITICAL-3 "Dual Attachment" coverage gap): attach one tip to two outfits via
+      the real `linksRepo` (an authenticated client, not the admin/service-role client), detach it from
+      one, assert via a real admin query the other outfit's `outfit_tip` row survives untouched. The
+      only prior coverage (`tests/unit/ui/tip-attach.test.js`) asserted call shapes against fake repos
+      only, never real database behavior.
+- [x] FP.2 `public/sw.js` `staleWhileRevalidate(cache, request, fetcher)` + `tests/unit/sw-routing.test.js`
+      (closes whole-change CRITICAL-2/CRITICAL-3-carryover "service worker updates the cached shell on
+      new deploys"): replaces `cacheFirst()`, which served a cached response forever and only
+      invalidated on a manually-bumped `SHELL_CACHE` version string. Now serves the cached response
+      immediately (same offline-first speed) while kicking off a background fetch that updates the
+      cache for next time whenever the device is online — self-healing on every online visit, no manual
+      version bump required. RED (test importing the not-yet-existing function, confirmed failing) then
+      GREEN (implementation) as separate commits, same discipline as prior PRs.
+- [x] FP.3 `tests/unit/ui/prenda-detail.test.js` + `tests/unit/ui/outfit-detail.test.js` (closes
+      whole-change CRITICAL-4-carryover "reverse-lookup rendering has no automated test"): real
+      `renderPrendaDetail`/`renderOutfitDetail` wired against jsdom with fake/injectable
+      Supabase-shaped repos, same pattern PR2.5 established for `tests/unit/ui/app.test.js`. Covers
+      linked-outfits/linked-tips rendering from repo data, empty-state rendering, and click-to-navigate
+      callbacks. Non-vacuousness proven by temporarily removing each screen's `tipsSection` from the
+      DOM append call, observing all related assertions fail for the expected reason, then restoring
+      (`git checkout`) — no net source change was needed since the rendering code was already correct;
+      only the missing test coverage itself was the gap.
+
+Full suite after fix pass: **181/181** (169 baseline + 5 new `staleWhileRevalidate` unit tests + 1 new
+RLS integration test + 6 new detail-screen rendering tests), no regressions.
 
 ## Key Learnings
 
@@ -110,3 +157,4 @@ Chain strategy: pending
 3. Estimated total changed lines (~2400–3000) exceed both the generic 400-line default and the session's raised 800-line budget, so chained PRs are recommended regardless of which budget applies.
 4. `security_invoker = on` is required on `outfit_v` and explicit on `search_all()` because the Postgres default (definer-style view execution) would silently bypass RLS — task 12.4 exists specifically to prove that footgun stays closed.
 5. Reverse-lookup UI for garments is deliberately split from garment CRUD (phase 6) into its own phase 10, matching the user's explicit build-order instruction even though both touch `prenda-detail.js`.
+6. `outfit_tip`'s primary key is `(outfit_id, tip_id)` (0003_joins.sql), so a single tip legitimately links to multiple outfits — this made the dual-attachment real-DB test (FP.1) provable within one join table, not just across the outfit/garment table pair.
