@@ -17,7 +17,7 @@ import { renderEmptyState } from "../components/empty-state.js";
 export async function renderPrendaDetail(
   container,
   id,
-  { prendasRepo, catalogosRepo, outfitsRepo, tipsRepo, onEdit, onDelete, onSelectOutfit, onSelectTip },
+  { prendasRepo, catalogosRepo, outfitsRepo, tipsRepo, storageRepo, onEdit, onDelete, onSelectOutfit, onSelectTip },
 ) {
   container.innerHTML = "";
 
@@ -30,10 +30,58 @@ export async function renderPrendaDetail(
     ]);
   const vm = toPrendaViewModel(prenda, { coloresCatalog: colores });
 
-  const title = document.createElement("h2");
+  // Bucket is private (src/data/storage.js), so a fresh signed URL is
+  // fetched on every render rather than cached -- correctness over
+  // premature optimization (a cached URL could expire mid-view).
+  const fotos = prenda.fotos ?? [];
+  const fotoUrls = storageRepo
+    ? await Promise.all(fotos.map((path) => storageRepo.getPrendaFotoUrl(path).catch(() => null)))
+    : [];
+
+  const screen = document.createElement("div");
+  screen.className = "screen prenda-detail-screen";
+
+  const header = document.createElement("div");
+  header.className = "screen-header";
+
+  const title = document.createElement("h1");
   title.textContent = vm.nombre;
+  header.append(title);
+
+  // Simple "main photo + thumbnail strip" gallery -- no lightbox, matching
+  // this task's brief not to over-engineer this. Empty state matches the
+  // reverse-lookup sections' renderEmptyState() below.
+  const gallerySection = document.createElement("section");
+  gallerySection.className = "foto-gallery";
+  const validFotoUrls = fotoUrls.filter(Boolean);
+  if (validFotoUrls.length === 0) {
+    gallerySection.append(renderEmptyState("Sin fotos."));
+  } else {
+    const mainImg = document.createElement("img");
+    mainImg.className = "foto-gallery-main";
+    mainImg.alt = vm.nombre;
+    mainImg.src = validFotoUrls[0];
+    gallerySection.append(mainImg);
+
+    if (validFotoUrls.length > 1) {
+      const strip = document.createElement("div");
+      strip.className = "foto-gallery-strip";
+      for (const url of validFotoUrls) {
+        const thumb = document.createElement("img");
+        thumb.className = "foto-gallery-thumb";
+        thumb.alt = vm.nombre;
+        thumb.src = url;
+        thumb.addEventListener("click", () => {
+          mainImg.src = url;
+        });
+        strip.append(thumb);
+      }
+      gallerySection.append(strip);
+    }
+  }
 
   const fields = document.createElement("dl");
+  fields.className = "detail-fields";
   const rows = [
     ["Tipo", vm.tipoPrenda],
     ["Colores", joinList(vm.colores.map((c) => c.nombre))],
@@ -59,12 +107,14 @@ export async function renderPrendaDetail(
 
   const editButton = document.createElement("button");
   editButton.type = "button";
-  editButton.textContent = "Editar";
+  editButton.className = "btn";
+  editButton.textContent = "Editar prenda";
   editButton.addEventListener("click", () => onEdit?.(vm.id));
 
   const deleteButton = document.createElement("button");
   deleteButton.type = "button";
-  deleteButton.textContent = "Eliminar";
+  deleteButton.className = "btn btn-danger";
+  deleteButton.textContent = "Eliminar prenda";
   deleteButton.addEventListener("click", async () => {
     // FKs on the join tables cascade on delete (0003_joins.sql), so this
     // also removes any outfit_prenda/prenda_tip links -- satisfies
@@ -81,18 +131,27 @@ export async function renderPrendaDetail(
   const linkedOutfitIds = new Set(linkedOutfitRows.map((row) => row.outfit_id));
   const linkedOutfits = allOutfits.filter((o) => linkedOutfitIds.has(o.id));
 
+  // Editorial "how to style this" module -- a small grid of outfit tiles,
+  // not a plain list (design direction: signature detail for this screen).
+  // Heading text and DOM order (h3 immediately followed by the list) are
+  // pinned by tests/unit/ui/prenda-detail.test.js -- only classNames/styling
+  // change here, no restructuring.
   const outfitsSection = document.createElement("section");
+  outfitsSection.className = "style-module";
   const outfitsHeading = document.createElement("h3");
+  outfitsHeading.className = "style-module-heading";
   outfitsHeading.textContent = "Outfits vinculados";
   outfitsSection.append(outfitsHeading);
 
   const outfitsList = document.createElement("ul");
+  outfitsList.className = "style-module-grid";
   if (linkedOutfits.length === 0) {
     outfitsList.append(renderEmptyState("Sin outfits vinculados."));
   }
   for (const row of linkedOutfits) {
     const outfitVm = toOutfitViewModel(row);
     const item = document.createElement("li");
+    item.className = "style-module-tile";
     item.textContent = outfitVm.titulo || outfitVm.nombreSugerido || "Outfit sin nombre";
     item.addEventListener("click", () => onSelectOutfit?.(row.id));
     outfitsList.append(item);
@@ -103,11 +162,14 @@ export async function renderPrendaDetail(
   const linkedTips = allTips.filter((t) => linkedTipIds.has(t.id));
 
   const tipsSection = document.createElement("section");
+  tipsSection.className = "style-module";
   const tipsHeading = document.createElement("h3");
+  tipsHeading.className = "style-module-heading";
   tipsHeading.textContent = "Tips vinculados";
   tipsSection.append(tipsHeading);
 
   const tipsList = document.createElement("ul");
+  tipsList.className = "attach-list";
   if (linkedTips.length === 0) {
     tipsList.append(renderEmptyState("Sin tips vinculados."));
   }
@@ -119,6 +181,14 @@ export async function renderPrendaDetail(
   }
   tipsSection.append(tipsList);
 
-  container.append(title, fields, outfitsSection, tipsSection, editButton, deleteButton);
+  header.append((() => {
+    const actions = document.createElement("div");
+    actions.className = "screen-actions";
+    actions.append(editButton, deleteButton);
+    return actions;
+  })());
+
+  screen.append(header, gallerySection, fields, outfitsSection, tipsSection);
+  container.append(screen);
   return container;
 }

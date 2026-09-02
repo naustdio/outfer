@@ -28,11 +28,29 @@ export function makeFakeClient({ responses = [] } = {}) {
     return builder;
   }
 
+  function makeStorageBucket(record) {
+    return {
+      upload: (...args) => (record.ops.push(["upload", args]), Promise.resolve(nextResponse())),
+      remove: (...args) => (record.ops.push(["remove", args]), Promise.resolve(nextResponse())),
+      download: (...args) => (record.ops.push(["download", args]), Promise.resolve(nextResponse())),
+      list: (...args) => (record.ops.push(["list", args]), Promise.resolve(nextResponse())),
+      createSignedUrl: (...args) =>
+        (record.ops.push(["createSignedUrl", args]), Promise.resolve(nextResponse())),
+    };
+  }
+
   const client = {
     from: (table) => {
       const record = { table, ops: [] };
       calls.push(record);
       return makeBuilder(record);
+    },
+    storage: {
+      from: (bucket) => {
+        const record = { storage: bucket, ops: [] };
+        calls.push(record);
+        return makeStorageBucket(record);
+      },
     },
     rpc: (fn, args) => {
       const record = { rpc: fn, args };
@@ -52,6 +70,10 @@ export function makeFakeClient({ responses = [] } = {}) {
       },
       getSession: (...args) => {
         calls.push({ auth: "getSession", args });
+        return Promise.resolve(nextResponse());
+      },
+      getUser: (...args) => {
+        calls.push({ auth: "getUser", args });
         return Promise.resolve(nextResponse());
       },
       onAuthStateChange: (...args) => {
