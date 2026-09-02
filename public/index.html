@@ -4,17 +4,36 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Closet</title>
-    <!--
-      No stylesheet yet: real visual design is a later change (design.md
-      "background_color/theme_color as neutral placeholders pending the
-      later visual-design change"). This shell is deliberately unstyled --
-      Phase 6.5's only job was making the app loadable and navigable.
-    -->
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#2e3a59" />
+    <meta name="theme-color" content="#efe6d2" />
+    <!--
+      Editorial visual design system: Libre Caslon Text (display/serif) for
+      titles + Geist (UI sans) for everything else, both self-hosted via
+      Google Fonts' CSS2 API. preconnect warms the two hosts CSS2 responses
+      point at; font-display: swap is requested so text never blocks on the
+      font file.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&family=Geist:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <div id="app"></div>
+    <!--
+      Persistent bottom nav -- a sibling of #app, not a child of it, so the
+      router's per-navigation `container.innerHTML = ""` (every screen does
+      this; see src/ui/router.js's render()) never touches it. Starts
+      `hidden` so there's no flash of nav chrome before src/main.js decides
+      auth state (login screen vs. authenticated); src/main.js toggles the
+      `hidden` attribute via the `nav` hook it passes to createApp
+      (src/app.js). Content is rendered once by
+      src/ui/components/nav-bar.js's renderNavBar().
+    -->
+    <nav id="app-nav" class="app-nav" hidden></nav>
 
     <!--
       public/config.js is per-deploy and gitignored (see

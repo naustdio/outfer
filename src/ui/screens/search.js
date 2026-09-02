@@ -40,6 +40,13 @@ const DEBOUNCE_MS = 300;
 export function renderSearch(container, { searchRepo, onSelect }) {
   container.innerHTML = "";
 
+  const screen = document.createElement("div");
+  screen.className = "screen search-screen";
+
+  const heading = document.createElement("h1");
+  heading.textContent = "Buscar";
+  screen.append(heading);
+
   const form = document.createElement("form");
   form.className = "search-form";
   form.addEventListener("submit", (event) => event.preventDefault());
@@ -48,15 +55,18 @@ export function renderSearch(container, { searchRepo, onSelect }) {
   input.type = "search";
   input.name = "q";
   input.placeholder = "Buscar prendas, outfits, tips...";
+  input.setAttribute("aria-label", "Buscar prendas, outfits, tips");
   form.append(input);
 
   const status = document.createElement("p");
   status.className = "search-status";
+  status.setAttribute("role", "status");
 
   const results = document.createElement("div");
   results.className = "search-results";
 
-  container.append(form, status, results);
+  screen.append(form, status, results);
+  container.append(screen);
 
   let debounceTimer = null;
   let requestId = 0;
@@ -81,6 +91,7 @@ export function renderSearch(container, { searchRepo, onSelect }) {
       }
       for (const hit of hits) {
         const item = document.createElement("li");
+        item.className = "search-hit";
         const title = document.createElement("strong");
         title.textContent = hit.titulo;
         const subtitle = document.createElement("span");

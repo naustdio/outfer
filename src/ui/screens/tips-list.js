@@ -8,14 +8,23 @@ export async function renderTipsList(container, { tipsRepo, onSelect, onCreate }
 
   const tips = await tipsRepo.list();
 
+  const screen = document.createElement("div");
+  screen.className = "screen tips-list-screen";
+
+  const header = document.createElement("div");
+  header.className = "screen-header";
+  const heading = document.createElement("h1");
+  heading.textContent = "Tips";
   const createButton = document.createElement("button");
   createButton.type = "button";
-  createButton.textContent = "Nuevo tip";
+  createButton.className = "btn btn-primary";
+  createButton.textContent = "Agregar tip";
   createButton.addEventListener("click", () => onCreate?.());
-  container.append(createButton);
+  header.append(heading, createButton);
+  screen.append(header);
 
   const list = document.createElement("ul");
-  list.className = "tips-list";
+  list.className = "tips-list card-list";
 
   if (tips.length === 0) {
     const empty = document.createElement("li");
@@ -26,12 +35,14 @@ export async function renderTipsList(container, { tipsRepo, onSelect, onCreate }
 
   for (const row of tips) {
     const item = document.createElement("li");
-    item.className = "tip-card";
+    item.className = "tip-card card";
 
     const title = document.createElement("strong");
+    title.className = "card-title";
     title.textContent = row.tip;
 
     const meta = document.createElement("span");
+    meta.className = "card-meta";
     meta.textContent = joinList(row.categoria);
 
     item.append(title, meta);
@@ -39,6 +50,7 @@ export async function renderTipsList(container, { tipsRepo, onSelect, onCreate }
     list.append(item);
   }
 
-  container.append(list);
+  screen.append(list);
+  container.append(screen);
   return list;
 }

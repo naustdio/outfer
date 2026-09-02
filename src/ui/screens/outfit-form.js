@@ -26,6 +26,7 @@ const TEMPORADA_OPTIONS = ["Primavera", "Verano", "Otono", "Invierno", "Atempora
 
 function checkboxGroup(name, options, selected = []) {
   const fieldset = document.createElement("fieldset");
+  fieldset.className = "checkbox-group";
   for (const option of options) {
     const label = document.createElement("label");
     const input = document.createElement("input");
@@ -39,6 +40,20 @@ function checkboxGroup(name, options, selected = []) {
   return fieldset;
 }
 
+function field(labelText, control, id) {
+  const wrap = document.createElement("div");
+  wrap.className = "form-field";
+  const label = document.createElement("label");
+  label.className = "eyebrow";
+  label.textContent = labelText;
+  if (id) {
+    label.htmlFor = id;
+    control.id = id;
+  }
+  wrap.append(label, control);
+  return wrap;
+}
+
 // Mounts the create/edit outfit form. Garment linking (M:N to prenda) is
 // deliberately NOT here -- it needs an existing outfit id, so it lives in
 // outfit-detail.js (handleLinkGarment/handleUnlinkGarment), same reasoning
@@ -48,6 +63,10 @@ export function renderOutfitForm(container, { outfit = null, outfitsRepo, onSave
 
   const form = document.createElement("form");
   form.className = "outfit-form";
+
+  const heading = document.createElement("h1");
+  heading.textContent = outfit ? "Editar outfit" : "Nuevo outfit";
+  form.append(heading);
 
   const tituloInput = document.createElement("input");
   tituloInput.name = "titulo";
@@ -71,22 +90,28 @@ export function renderOutfitForm(container, { outfit = null, outfitsRepo, onSave
 
   const submitButton = document.createElement("button");
   submitButton.type = "submit";
+  submitButton.className = "btn btn-primary";
   submitButton.textContent = outfit ? "Guardar cambios" : "Crear outfit";
 
   const cancelButton = document.createElement("button");
   cancelButton.type = "button";
+  cancelButton.className = "btn btn-ghost";
   cancelButton.textContent = "Cancelar";
   cancelButton.addEventListener("click", () => onCancel?.());
 
+  const formActions = document.createElement("div");
+  formActions.className = "form-actions";
+  formActions.append(submitButton, cancelButton);
+
   form.append(
-    tituloInput,
-    imagenInput,
-    notasInput,
-    temporadaField,
+    field("Titulo", tituloInput, "outfit-titulo"),
+    field("Imagen de inspiracion", imagenInput, "outfit-imagen"),
+    field("Notas", notasInput, "outfit-notas"),
+    field("Temporada", temporadaField),
     errorList,
-    submitButton,
-    cancelButton,
+    formActions,
   );
+  container.className = "screen outfit-form-screen";
   container.append(form);
 
   form.addEventListener("submit", async (event) => {

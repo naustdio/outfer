@@ -16,6 +16,7 @@ import { createApp } from "./app.js";
 import { createRouter } from "./ui/router.js";
 import { createSupabaseClient } from "./data/supabaseClient.js";
 import { makePrendasRepo } from "./data/prendas.js";
+import { makeStorageRepo } from "./data/storage.js";
 import { makeOutfitsRepo } from "./data/outfits.js";
 import { makeTipsRepo } from "./data/tips.js";
 import { makeLinksRepo } from "./data/links.js";
@@ -30,6 +31,7 @@ import { renderTipsList } from "./ui/screens/tips-list.js";
 import { renderTipForm } from "./ui/screens/tip-form.js";
 import { renderSearch } from "./ui/screens/search.js";
 import { makeSearchRepo } from "./data/search.js";
+import { renderNavBar } from "./ui/components/nav-bar.js";
 
 // Runtime config comes from a plain global set by public/config.js (see
 // public/config.example.js), not a bundler env var -- design.md: vanilla ES
@@ -41,6 +43,7 @@ const { SUPABASE_URL, SUPABASE_ANON_KEY } = window.__CLOSET_APP_CONFIG__ ?? {};
 const root = document.getElementById("app");
 const client = createSupabaseClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const prendasRepo = makePrendasRepo(client);
+const storageRepo = makeStorageRepo(client);
 const outfitsRepo = makeOutfitsRepo(client);
 const tipsRepo = makeTipsRepo(client);
 const linksRepo = makeLinksRepo(client);
@@ -71,6 +74,7 @@ const routes = [
       renderPrendaForm(container, {
         ...catalogs,
         prendasRepo,
+        storageRepo,
         onSaved: () => nav.navigate("/prendas"),
         onCancel: () => nav.navigate("/prendas"),
       });
@@ -84,6 +88,7 @@ const routes = [
         prenda,
         ...catalogs,
         prendasRepo,
+        storageRepo,
         onSaved: () => nav.navigate(`/prendas/${id}`),
         onCancel: () => nav.navigate(`/prendas/${id}`),
       });
@@ -97,6 +102,7 @@ const routes = [
         catalogosRepo,
         outfitsRepo,
         tipsRepo,
+        storageRepo,
         onEdit: (editId) => nav.navigate(`/prendas/${editId}/edit`),
         onDelete: () => nav.navigate("/prendas"),
         onSelectOutfit: (outfitId) => nav.navigate(`/outfits/${outfitId}`),
@@ -109,6 +115,7 @@ const routes = [
       renderPrendasList(container, {
         prendasRepo,
         catalogosRepo,
+        storageRepo,
         onSelect: (id) => nav.navigate(`/prendas/${id}`),
         onCreate: () => nav.navigate("/prendas/new"),
       }),
@@ -201,10 +208,9 @@ const routes = [
       }),
   },
   {
-    // unified-search "Cross-Entity Search". No persistent nav bar exists
-    // anywhere in the app yet (see search.js's header comment), so this is
-    // reached the same way every other screen is: the hash bar (e.g.
-    // `#/search`).
+    // unified-search "Cross-Entity Search". Reachable via the persistent
+    // bottom nav's "Buscar" tab (renderNavBar below) as well as the hash
+    // bar directly (e.g. `#/search`).
     pattern: "/search",
     handler: (container) =>
       renderSearch(container, {
@@ -226,8 +232,38 @@ function notFound(container, path) {
 }
 
 const router = createRouter({ root, routes, notFound });
-const app = createApp({ client, root, router });
+
+// Persistent bottom nav: a sibling of #app (public/index.html), rendered
+// once here -- it never goes through the router (see nav-bar.js's header
+// comment on why it stays decoupled from router.js). createApp only knows
+// about a { show, hide } hook, not the DOM element or renderNavBar() itself,
+// so src/app.js stays framework-agnostic about what "nav chrome" even is
+// (see its own header comment on the `nav` param).
+const navRoot = document.getElementById("app-nav");
+
+const app = createApp({
+  client,
+  root,
+  router,
+  nav: {
+    show: () => {
+      navRoot.hidden = false;
+    },
+    hide: () => {
+      navRoot.hidden = true;
+    },
+  },
+});
 router.setGuard((path) => app.gate.guard(path));
+
+// onSignOut calls the real auth.signOut() (src/data/auth.js) that
+// createApp already built -- app.auth is returned specifically so callers
+// like this one can reuse the same auth instance rather than constructing
+// a second one. Triggers Supabase's SIGNED_OUT event, which src/app.js's
+// onAuthStateChange handler above already reacts to (router.reset() +
+// showLogin(), which itself calls hideNav()) -- no separate wiring needed
+// here for what happens after sign-out.
+renderNavBar(navRoot, { onSignOut: () => app.auth.signOut() });
 
 app.boot();
 

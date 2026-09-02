@@ -6,8 +6,14 @@
 export function renderLogin(container, { auth, onSignedIn } = {}) {
   container.innerHTML = "";
 
+  const screen = document.createElement("div");
+  screen.className = "screen login-screen";
+
   const form = document.createElement("form");
   form.className = "login-form";
+
+  const heading = document.createElement("h1");
+  heading.textContent = "Closet";
 
   const emailInput = document.createElement("input");
   emailInput.type = "email";
@@ -30,10 +36,12 @@ export function renderLogin(container, { auth, onSignedIn } = {}) {
 
   const submitButton = document.createElement("button");
   submitButton.type = "submit";
-  submitButton.textContent = "Entrar";
+  submitButton.className = "btn btn-primary btn-block";
+  submitButton.textContent = "Entrar al closet";
 
-  form.append(emailInput, passwordInput, errorEl, submitButton);
-  container.append(form);
+  form.append(heading, emailInput, passwordInput, errorEl, submitButton);
+  screen.append(form);
+  container.append(screen);
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
