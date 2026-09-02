@@ -18,6 +18,25 @@ export function makeOutfitsRepo(client) {
       return data;
     },
 
+    // outfit_v aggregates only a count (prendas_count), never the linked
+    // garment ids themselves -- outfit-detail.js needs those ids to render
+    // and unlink individual garments. Additive alongside getById() (kept
+    // byte-identical above) rather than changing its shape, mirroring
+    // prendasRepo.getById()'s multi-query pattern (design.md Interfaces).
+    async getWithPrendas(id) {
+      const [outfitRes, linksRes] = await Promise.all([
+        client.from("outfit_v").select("*").eq("id", id).single(),
+        client.from("outfit_prenda").select("prenda_id").eq("outfit_id", id),
+      ]);
+      if (outfitRes.error) throw outfitRes.error;
+      if (linksRes.error) throw linksRes.error;
+
+      return {
+        outfit: outfitRes.data,
+        prendaIds: linksRes.data.map((row) => row.prenda_id),
+      };
+    },
+
     async create(input) {
       const { data, error } = await client.from("outfit").insert(input).select().single();
       if (error) throw error;
