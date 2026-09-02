@@ -36,3 +36,28 @@ export function validatePrenda(input) {
 
   return { valid: Object.keys(errors).length === 0, errors };
 }
+
+// outfit-composition "Outfit Fields": titulo is the only not-null writable
+// column on `outfit` (0002_entities.sql) -- estado/nombre_sugerido are
+// derived and MUST NOT appear here (spec: "MUST NOT be directly writable").
+export function validateOutfit(input) {
+  const errors = {};
+
+  if (!input.titulo || input.titulo.trim() === "") {
+    errors.titulo = "El titulo es obligatorio.";
+  }
+
+  return { valid: Object.keys(errors).length === 0, errors };
+}
+
+// styling-tips "Tip Fields and CRUD": "A tip MUST record at least a text
+// body" -- `tip` is the only not-null writable column (0002_entities.sql).
+export function validateTip(input) {
+  const errors = {};
+
+  if (!input.tip || input.tip.trim() === "") {
+    errors.tip = "El tip es obligatorio.";
+  }
+
+  return { valid: Object.keys(errors).length === 0, errors };
+}
