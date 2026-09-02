@@ -28,6 +28,8 @@ import { renderOutfitDetail } from "./ui/screens/outfit-detail.js";
 import { renderOutfitForm } from "./ui/screens/outfit-form.js";
 import { renderTipsList } from "./ui/screens/tips-list.js";
 import { renderTipForm } from "./ui/screens/tip-form.js";
+import { renderSearch } from "./ui/screens/search.js";
+import { makeSearchRepo } from "./data/search.js";
 
 // Runtime config comes from a plain global set by public/config.js (see
 // public/config.example.js), not a bundler env var -- design.md: vanilla ES
@@ -43,6 +45,7 @@ const outfitsRepo = makeOutfitsRepo(client);
 const tipsRepo = makeTipsRepo(client);
 const linksRepo = makeLinksRepo(client);
 const catalogosRepo = makeCatalogosRepo(client);
+const searchRepo = makeSearchRepo(client);
 
 async function loadFormCatalogs() {
   const [coloresCatalog, tiposPrendaCatalog] = await Promise.all([
@@ -92,8 +95,12 @@ const routes = [
       renderPrendaDetail(container, id, {
         prendasRepo,
         catalogosRepo,
+        outfitsRepo,
+        tipsRepo,
         onEdit: (editId) => nav.navigate(`/prendas/${editId}/edit`),
         onDelete: () => nav.navigate("/prendas"),
+        onSelectOutfit: (outfitId) => nav.navigate(`/outfits/${outfitId}`),
+        onSelectTip: (tipId) => nav.navigate(`/tips/${tipId}`),
       }),
   },
   {
@@ -133,10 +140,12 @@ const routes = [
       renderOutfitDetail(container, id, {
         outfitsRepo,
         prendasRepo,
+        tipsRepo,
         linksRepo,
         catalogosRepo,
         onEdit: (editId) => nav.navigate(`/outfits/${editId}/edit`),
         onDelete: () => nav.navigate("/outfits"),
+        onSelectTip: (tipId) => nav.navigate(`/tips/${tipId}`),
       }),
   },
   {
@@ -189,6 +198,22 @@ const routes = [
         tipsRepo,
         onSelect: (id) => nav.navigate(`/tips/${id}`),
         onCreate: () => nav.navigate("/tips/new"),
+      }),
+  },
+  {
+    // unified-search "Cross-Entity Search". No persistent nav bar exists
+    // anywhere in the app yet (see search.js's header comment), so this is
+    // reached the same way every other screen is: the hash bar (e.g.
+    // `#/search`).
+    pattern: "/search",
+    handler: (container) =>
+      renderSearch(container, {
+        searchRepo,
+        onSelect: (hit) => {
+          if (hit.tipo === "prenda") nav.navigate(`/prendas/${hit.id}`);
+          else if (hit.tipo === "outfit") nav.navigate(`/outfits/${hit.id}`);
+          else if (hit.tipo === "tip") nav.navigate(`/tips/${hit.id}`);
+        },
       }),
   },
 ];
