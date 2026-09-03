@@ -478,6 +478,15 @@ fieldset {
   gap: var(--space-2) var(--space-4);
 }
 
+/* The unconditional `display: flex` above is author-origin, so it silently
+   overrides the browser's built-in `[hidden] { display: none }` UA rule --
+   author styles always win over UA styles regardless of selector
+   specificity. Without this, prenda-form.js's danoField.hidden toggle (tied
+   to "Necesita reparacion") had no visual effect. */
+fieldset[hidden] {
+  display: none;
+}
+
 fieldset label {
   display: inline-flex;
   align-items: center;
