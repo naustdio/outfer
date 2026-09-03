@@ -5,8 +5,9 @@ Closet catalog PWA (vanilla JS + GSAP) backed by Supabase (Postgres + Auth + Sto
 ## Production
 
 - Supabase project: "OUTFIT" (`teffwexveqgrzzpsyoki`), same migrations as local, applied via the Supabase MCP tools.
-- Hosting: Hostinger shared hosting. Hostinger's own Git deployment (Avanzado -> GIT) clones this repo into `public_html/repo` and pulls on every push to `master` via a webhook registered on this GitHub repo.
+- Hosting: Hostinger shared hosting. Hostinger's own Git deployment (Avanzado -> GIT) clones this repo into `public_html/repo`. A GitHub webhook pinging Hostinger's deploy URL is registered but doesn't reliably trigger a pull on its own -- the cron job below is what actually keeps it in sync.
 - `public_html/repo` is blocked from the web via a `.htaccess` (`Require all denied`) written by `~/sync-closet-app.sh`, which also copies `repo/public/*` and `repo/src/` into `public_html` (excluding `config.js`, which lives only on the server, never in git). That script runs on a cron job on the server, not in this repo.
+- Update flow: push to `master`, and a cron job on the server (`*/5 * * * *`, `bash ~/sync-closet-app.sh`) pulls and re-syncs automatically within 5 minutes. No manual step needed.
 
 ## Prerequisites
 
@@ -130,4 +131,3 @@ tests/
   rls/           Row-Level-Security integration tests (real local DB)
 openspec/        Spec-Driven Development artifacts (proposals, specs, archive)
 ```
-- Update flow: push to `master`, and a cron job on the server (`*/5 * * * *`, `bash ~/sync-closet-app.sh`) pulls and re-syncs automatically within 5 minutes. No manual step needed.
