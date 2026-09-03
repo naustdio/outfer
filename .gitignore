@@ -8,3 +8,6 @@ supabase/.branches/
 supabase/.temp/
 *.log
 public/config.js
+.deploy-keys/
+dist-prod/
+closet-app-prod.zip

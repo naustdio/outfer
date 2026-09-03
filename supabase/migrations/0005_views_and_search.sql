@@ -34,14 +34,19 @@ create function search_all(q text)
 returns table (tipo text, id uuid, titulo text, subtitulo text)
 language sql stable
 security invoker            -- explicit: RLS must apply to the caller
+set search_path = ''        -- explicit: a mutable search_path on a SECURITY
+                             -- INVOKER function is still a hijack vector if
+                             -- an attacker can get an unqualified object
+                             -- resolved from a schema earlier in the caller's
+                             -- path -- schema-qualify every reference below.
 as $$
-  select 'prenda', p.id, p.nombre, coalesce(p.marca, '') from prenda p
+  select 'prenda', p.id, p.nombre, coalesce(p.marca, '') from public.prenda p
     where p.nombre ilike '%' || q || '%' or p.marca ilike '%' || q || '%'
   union all
-  select 'outfit', o.id, o.titulo, coalesce(o.notas, '') from outfit o
+  select 'outfit', o.id, o.titulo, coalesce(o.notas, '') from public.outfit o
     where o.titulo ilike '%' || q || '%' or o.notas ilike '%' || q || '%'
   union all
-  select 'tip', t.id, t.tip, coalesce(t.descripcion, '') from tip t
+  select 'tip', t.id, t.tip, coalesce(t.descripcion, '') from public.tip t
     where t.tip ilike '%' || q || '%' or t.descripcion ilike '%' || q || '%'
   limit 60;
 $$;
