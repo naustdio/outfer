@@ -35,10 +35,12 @@ export async function handleUnlinkGarment({ outfitsRepo, linksRepo, outfitId, pr
 // Strategy table (DOM screens are manual/E2E for this change; see
 // prendas-list.js/prenda-detail.js/login.js headers) -- the testable logic
 // lives in handleLinkGarment/handleUnlinkGarment above.
+const EXTERNAL_URL_RE = /^https?:\/\//i;
+
 export async function renderOutfitDetail(
   container,
   id,
-  { outfitsRepo, prendasRepo, tipsRepo, linksRepo, catalogosRepo, onEdit, onDelete, onSelectTip },
+  { outfitsRepo, prendasRepo, tipsRepo, linksRepo, catalogosRepo, storageRepo, onEdit, onDelete, onSelectTip },
 ) {
   async function load() {
     const [{ outfit, prendaIds }, tipIds, allPrendas, allTips, colores] = await Promise.all([
@@ -65,6 +67,28 @@ export async function renderOutfitDetail(
     const title = document.createElement("h1");
     title.textContent = vm.titulo || vm.nombreSugerido || "Outfit sin nombre";
     header.append(title);
+
+    // imagen_inspiracion holds either a raw http(s) URL the user pasted, or
+    // an internal Storage path (uploaded via drag/paste/file-picker in
+    // outfit-form.js) -- only the latter needs a signed URL. Built here but
+    // appended in the final screen.append() below, between header and
+    // fields.
+    let inspiracionImg = null;
+    if (outfit.imagen_inspiracion) {
+      inspiracionImg = document.createElement("img");
+      inspiracionImg.className = "outfit-inspiracion-image";
+      inspiracionImg.alt = "Imagen de inspiracion";
+      if (EXTERNAL_URL_RE.test(outfit.imagen_inspiracion)) {
+        inspiracionImg.src = outfit.imagen_inspiracion;
+      } else if (storageRepo) {
+        storageRepo
+          .getPrendaFotoUrl(outfit.imagen_inspiracion)
+          .then((url) => {
+            inspiracionImg.src = url;
+          })
+          .catch(() => inspiracionImg.remove());
+      }
+    }
 
     const fields = document.createElement("dl");
     fields.className = "detail-fields";
@@ -205,7 +229,7 @@ export async function renderOutfitDetail(
     }
     tipsSection.append(tipsList);
 
-    screen.append(header, fields, flatlay, tipsSection);
+    screen.append(header, ...(inspiracionImg ? [inspiracionImg] : []), fields, flatlay, tipsSection);
     container.append(screen);
   }
 

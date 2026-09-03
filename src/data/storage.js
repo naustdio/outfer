@@ -33,6 +33,19 @@ export function buildPrendaFotoPath(userId, prendaId, filename) {
   return `${userId}/${prendaId}/${Date.now()}-${sanitizeFilename(filename)}`;
 }
 
+// Outfit inspiration images share the prenda-fotos bucket under a distinct
+// "_outfits" sub-prefix -- the RLS policies in 0007_prenda_fotos_storage.sql
+// only key off the FIRST path segment being auth.uid(), so any prefix after
+// that is free to use without a new bucket/migration. outfit.imagen_inspiracion
+// (plain text column) holds either this Storage path or a raw http(s) URL the
+// user pasted directly -- callers distinguish the two by checking for a
+// "http" prefix before deciding whether to sign it.
+export function buildOutfitInspiracionPath(userId, outfitId, filename) {
+  if (!userId) throw new Error("buildOutfitInspiracionPath: userId is required");
+  if (!outfitId) throw new Error("buildOutfitInspiracionPath: outfitId is required");
+  return `${userId}/_outfits/${outfitId}/${Date.now()}-${sanitizeFilename(filename)}`;
+}
+
 // Pure, unit-tested: validates a File/Blob-like object (duck-typed on
 // .type/.size so it works with both real File objects in the browser and
 // plain fixtures in tests) before it's ever sent over the network. The
@@ -77,6 +90,23 @@ export function makeStorageRepo(client) {
       const { error } = await client.storage.from(BUCKET).remove([path]);
       if (error) throw error;
       return true;
+    },
+
+    async uploadOutfitInspiracion(outfitId, file) {
+      const { valid, error: validationError } = validatePrendaFoto(file);
+      if (!valid) throw new Error(validationError);
+
+      const { data: userData, error: userError } = await client.auth.getUser();
+      if (userError) throw userError;
+      const userId = userData?.user?.id;
+      if (!userId) throw new Error("uploadOutfitInspiracion: no authenticated user.");
+
+      const path = buildOutfitInspiracionPath(userId, outfitId, file.name);
+      const { error } = await client.storage
+        .from(BUCKET)
+        .upload(path, file, { contentType: file.type, upsert: false });
+      if (error) throw error;
+      return path;
     },
 
     // Private bucket => no public URL exists. Callers must call this on

@@ -127,6 +127,10 @@ const routes = [
     handler: (container) =>
       renderOutfitForm(container, {
         outfitsRepo,
+        storageRepo,
+        prendasRepo,
+        catalogosRepo,
+        linksRepo,
         onSaved: (saved) => nav.navigate(`/outfits/${saved.id}`),
         onCancel: () => nav.navigate("/outfits"),
       }),
@@ -138,6 +142,7 @@ const routes = [
       renderOutfitForm(container, {
         outfit,
         outfitsRepo,
+        storageRepo,
         onSaved: () => nav.navigate(`/outfits/${id}`),
         onCancel: () => nav.navigate(`/outfits/${id}`),
       });
@@ -152,6 +157,7 @@ const routes = [
         tipsRepo,
         linksRepo,
         catalogosRepo,
+        storageRepo,
         onEdit: (editId) => nav.navigate(`/outfits/${editId}/edit`),
         onDelete: () => nav.navigate("/outfits"),
         onSelectTip: (tipId) => nav.navigate(`/tips/${tipId}`),
