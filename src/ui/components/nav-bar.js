@@ -16,11 +16,13 @@
 // header comments) -- isTabActive below is the one pure/testable piece and
 // is covered by tests/unit/ui/nav-bar.test.js.
 
+import { icons } from "../icons.js";
+
 const TABS = [
-  { path: "/prendas", label: "Prendas" },
-  { path: "/outfits", label: "Outfits" },
-  { path: "/tips", label: "Tips" },
-  { path: "/search", label: "Buscar" },
+  { path: "/prendas", label: "Prendas", icon: icons.tag },
+  { path: "/outfits", label: "Outfits", icon: icons.hanger },
+  { path: "/tips", label: "Tips", icon: icons.bulb },
+  { path: "/search", label: "Buscar", icon: icons.search },
 ];
 
 // Mirrors router.js's parseHash normalization ("#/prendas" -> "/prendas",
@@ -56,7 +58,7 @@ export function renderNavBar(container, { onSignOut, window: win = window } = {}
     const link = document.createElement("a");
     link.className = "app-nav-tab";
     link.href = `#${tab.path}`;
-    link.textContent = tab.label;
+    link.innerHTML = `<span class="app-nav-tab-icon">${tab.icon}</span><span>${tab.label}</span>`;
     item.append(link);
     list.append(item);
     return { tab, link };
@@ -66,7 +68,7 @@ export function renderNavBar(container, { onSignOut, window: win = window } = {}
   const signOutButton = document.createElement("button");
   signOutButton.type = "button";
   signOutButton.className = "app-nav-tab app-nav-signout";
-  signOutButton.textContent = "Salir";
+  signOutButton.innerHTML = `<span class="app-nav-tab-icon">${icons.logout}</span><span>Salir</span>`;
   signOutButton.setAttribute("aria-label", "Cerrar sesion");
   signOutButton.addEventListener("click", () => onSignOut?.());
   signOutItem.append(signOutButton);
