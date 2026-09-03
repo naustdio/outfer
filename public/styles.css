@@ -782,36 +782,81 @@ body:has(.outfit-detail-screen) {
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: var(--space-3);
 }
 
+/* Photo card, not a text row: the garment's own photo fills the card, with
+   a bottom gradient for the name (same "let the product photo carry the
+   card" idea as the beige-palette list-row cards, adapted to this screen's
+   dark showcase palette). */
 .flatlay-item {
+  position: relative;
+  aspect-ratio: 3 / 4;
   border: 1px solid var(--color-border-dark);
   border-radius: var(--radius);
+  overflow: hidden;
   background: var(--color-bg-dark-raised);
-  padding: var(--space-3);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  font-size: 13px;
 }
 
-.flatlay-item span {
+.flatlay-item-thumb {
+  position: absolute;
+  inset: 0;
+}
+
+.flatlay-item-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.flatlay-item-thumb-empty::after {
+  content: "Sin foto";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-dark-muted);
+}
+
+.flatlay-item-label {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: var(--space-4) var(--space-2) var(--space-2);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0));
+  color: var(--color-text-dark);
+  font-size: 13px;
   font-weight: 600;
 }
 
-.flatlay-add {
-  display: flex;
-  gap: var(--space-2);
+.flatlay-item-remove {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(20, 18, 16, 0.6);
+  color: var(--color-text-dark);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
 }
 
-.flatlay-add select {
-  flex: 1;
-  background: var(--color-bg-dark-raised);
-  border-color: var(--color-border-dark);
-  color: var(--color-text-dark);
+.flatlay-item-remove:hover {
+  background: var(--color-danger);
+}
+
+.flatlay-add {
+  margin-top: var(--space-3);
 }
 
 .outfit-detail-screen input,

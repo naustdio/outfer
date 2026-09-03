@@ -1,6 +1,7 @@
 import { toOutfitViewModel, toPrendaViewModel } from "../../domain/mappers.js";
 import { joinList } from "../../domain/format.js";
 import { renderEmptyState } from "../components/empty-state.js";
+import { openPrendaPicker } from "../components/prenda-picker.js";
 
 // outfit-composition "Derived Outfit Status" / "Derived Suggested Name" +
 // design.md "Refetch after mutation instead of client-side re-derivation":
@@ -134,12 +135,33 @@ export async function renderOutfitDetail(
       const prendaVm = toPrendaViewModel(row, { coloresCatalog: colores });
       const item = document.createElement("li");
       item.className = "flatlay-item";
+
+      const thumb = document.createElement("div");
+      thumb.className = "flatlay-item-thumb";
+      const firstFoto = row.fotos?.[0];
+      if (firstFoto && storageRepo) {
+        const img = document.createElement("img");
+        img.alt = prendaVm.nombre;
+        thumb.append(img);
+        storageRepo
+          .getPrendaFotoUrl(firstFoto)
+          .then((url) => {
+            img.src = url;
+          })
+          .catch(() => thumb.classList.add("flatlay-item-thumb-empty"));
+      } else {
+        thumb.classList.add("flatlay-item-thumb-empty");
+      }
+
       const label = document.createElement("span");
+      label.className = "flatlay-item-label";
       label.textContent = prendaVm.nombre;
+
       const removeButton = document.createElement("button");
       removeButton.type = "button";
-      removeButton.className = "btn btn-ghost";
-      removeButton.textContent = "Quitar";
+      removeButton.className = "flatlay-item-remove";
+      removeButton.textContent = "×";
+      removeButton.setAttribute("aria-label", `Quitar ${prendaVm.nombre}`);
       removeButton.addEventListener("click", async () => {
         removeButton.disabled = true;
         const refetched = await handleUnlinkGarment({
@@ -150,37 +172,38 @@ export async function renderOutfitDetail(
         });
         await draw({ ...refetched, tipIds, allPrendas, allTips, colores });
       });
-      item.append(label, removeButton);
+
+      item.append(thumb, removeButton, label);
       linkedList.append(item);
     }
     flatlay.append(linkedList);
 
-    const addForm = document.createElement("form");
-    addForm.className = "outfit-add-prenda flatlay-add";
-    const addSelect = document.createElement("select");
-    addSelect.name = "prenda_id";
-    addSelect.setAttribute("aria-label", "Prenda a agregar");
-    for (const row of unlinkedPrendas) {
-      const option = document.createElement("option");
-      option.value = row.id;
-      option.textContent = row.nombre;
-      addSelect.append(option);
-    }
-    const addButton = document.createElement("button");
-    addButton.type = "submit";
-    addButton.className = "btn";
-    addButton.textContent = "Agregar prenda";
-    addButton.disabled = unlinkedPrendas.length === 0;
-    addForm.append(addSelect, addButton);
-    addForm.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      const prendaId = addSelect.value;
-      if (!prendaId) return;
-      addButton.disabled = true;
-      const refetched = await handleLinkGarment({ outfitsRepo, linksRepo, outfitId: id, prendaId });
-      await draw({ ...refetched, tipIds, allPrendas, allTips, colores });
+    const addPrendaButton = document.createElement("button");
+    addPrendaButton.type = "button";
+    addPrendaButton.className = "btn flatlay-add";
+    addPrendaButton.textContent = "+ Agregar prenda";
+    addPrendaButton.disabled = unlinkedPrendas.length === 0;
+    addPrendaButton.addEventListener("click", async () => {
+      if (!prendasRepo || !catalogosRepo) return;
+      addPrendaButton.disabled = true;
+      try {
+        const picked = await openPrendaPicker({
+          prendasRepo,
+          storageRepo,
+          catalogosRepo,
+          excludeIds: [...linkedSet],
+        });
+        if (!picked || picked.length === 0) return;
+        let refetched;
+        for (const row of picked) {
+          refetched = await handleLinkGarment({ outfitsRepo, linksRepo, outfitId: id, prendaId: row.id });
+        }
+        await draw({ ...refetched, tipIds, allPrendas, allTips, colores });
+      } finally {
+        addPrendaButton.disabled = false;
+      }
     });
-    flatlay.append(addForm);
+    flatlay.append(addPrendaButton);
 
     const editButton = document.createElement("button");
     editButton.type = "button";
