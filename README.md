@@ -2,6 +2,12 @@
 
 Closet catalog PWA (vanilla JS + GSAP) backed by Supabase (Postgres + Auth + Storage), no server tier for the core app.
 
+## Production
+
+- Supabase project: "OUTFIT" (`teffwexveqgrzzpsyoki`), same migrations as local, applied via the Supabase MCP tools.
+- Hosting: Hostinger shared hosting. Hostinger's own Git deployment (Avanzado -> GIT) clones this repo into `public_html/repo` and pulls on every push to `master` via a webhook registered on this GitHub repo.
+- `public_html/repo` is blocked from the web via a `.htaccess` (`Require all denied`) written by `~/sync-closet-app.sh`, which also copies `repo/public/*` and `repo/src/` into `public_html` (excluding `config.js`, which lives only on the server, never in git). That script runs on a cron job on the server, not in this repo.
+
 ## Prerequisites
 
 - Node.js 18+ and npm
