@@ -819,6 +819,7 @@ body:has(.outfit-detail-screen) {
 .flatlay-item-thumb {
   position: absolute;
   inset: 0;
+  cursor: pointer;
 }
 
 .flatlay-item-thumb img {

@@ -161,6 +161,7 @@ const routes = [
         storageRepo,
         onEdit: (editId) => nav.navigate(`/outfits/${editId}/edit`),
         onDelete: () => nav.navigate("/outfits"),
+        onSelectPrenda: (prendaId) => nav.navigate(`/prendas/${prendaId}`),
         onSelectTip: (tipId) => nav.navigate(`/tips/${tipId}`),
       }),
   },

@@ -56,7 +56,18 @@ const EXTERNAL_URL_RE = /^https?:\/\//i;
 export async function renderOutfitDetail(
   container,
   id,
-  { outfitsRepo, prendasRepo, tipsRepo, linksRepo, catalogosRepo, storageRepo, onEdit, onDelete, onSelectTip },
+  {
+    outfitsRepo,
+    prendasRepo,
+    tipsRepo,
+    linksRepo,
+    catalogosRepo,
+    storageRepo,
+    onEdit,
+    onDelete,
+    onSelectPrenda,
+    onSelectTip,
+  },
 ) {
   async function load() {
     const [{ outfit, prendaIds }, tipIds, allPrendas, allTips, colores] = await Promise.all([
@@ -153,6 +164,7 @@ export async function renderOutfitDetail(
 
       const thumb = document.createElement("div");
       thumb.className = "flatlay-item-thumb";
+      thumb.addEventListener("click", () => onSelectPrenda?.(row.id));
       const firstFoto = row.fotos?.[0];
       if (firstFoto && storageRepo) {
         const img = document.createElement("img");
