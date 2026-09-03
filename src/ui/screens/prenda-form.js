@@ -104,7 +104,16 @@ function field(labelText, control, id) {
 // that field untouched will silently overwrite it with null.
 export function renderPrendaForm(
   container,
-  { prenda = null, coloresCatalog = [], tiposPrendaCatalog = [], prendasRepo, storageRepo, onSaved, onCancel },
+  {
+    prenda = null,
+    coloresCatalog = [],
+    tiposPrendaCatalog = [],
+    prendasRepo,
+    storageRepo,
+    catalogosRepo,
+    onSaved,
+    onCancel,
+  },
 ) {
   container.innerHTML = "";
 
@@ -148,6 +157,108 @@ export function renderPrendaForm(
     option.textContent = tipo.nombre;
     option.selected = prenda?.tipo_prenda_id === tipo.id;
     tipoSelect.append(option);
+  }
+
+  // Tipo de prenda is a growable lookup (see supabase/migrations/0001, RLS
+  // policy "add_tipo"): any authenticated user can add a new type at runtime
+  // instead of being stuck with the seeded list. Only offered when the
+  // caller wires catalogosRepo (main.js does; the unit tests for this form
+  // don't need to and can leave it out).
+  const NEW_TIPO_VALUE = "__new__";
+  let lastTipoValue = tipoSelect.value;
+  let newTipoField = null;
+
+  if (catalogosRepo) {
+    const newTipoOption = document.createElement("option");
+    newTipoOption.value = NEW_TIPO_VALUE;
+    newTipoOption.textContent = "+ Agregar nuevo tipo...";
+    tipoSelect.append(newTipoOption);
+
+    newTipoField = document.createElement("div");
+    newTipoField.className = "new-tipo-field";
+    newTipoField.hidden = true;
+
+    const newTipoNombreInput = document.createElement("input");
+    newTipoNombreInput.placeholder = "Nombre del nuevo tipo";
+
+    const newTipoCategoriaSelect = document.createElement("select");
+    for (const categoria of ["Superior", "Inferior", "Pies", "Accesorios"]) {
+      const option = document.createElement("option");
+      option.value = categoria;
+      option.textContent = categoria;
+      newTipoCategoriaSelect.append(option);
+    }
+
+    const newTipoConfirmButton = document.createElement("button");
+    newTipoConfirmButton.type = "button";
+    newTipoConfirmButton.className = "btn";
+    newTipoConfirmButton.textContent = "Agregar";
+
+    const newTipoCancelButton = document.createElement("button");
+    newTipoCancelButton.type = "button";
+    newTipoCancelButton.className = "btn btn-ghost";
+    newTipoCancelButton.textContent = "Cancelar";
+
+    const newTipoError = document.createElement("p");
+    newTipoError.className = "new-tipo-error";
+    newTipoError.hidden = true;
+
+    newTipoField.append(
+      newTipoNombreInput,
+      newTipoCategoriaSelect,
+      newTipoConfirmButton,
+      newTipoCancelButton,
+      newTipoError,
+    );
+
+    function closeNewTipoField() {
+      newTipoField.hidden = true;
+      newTipoNombreInput.value = "";
+      newTipoError.hidden = true;
+      tipoSelect.value = lastTipoValue;
+    }
+
+    tipoSelect.addEventListener("change", () => {
+      if (tipoSelect.value === NEW_TIPO_VALUE) {
+        newTipoField.hidden = false;
+        newTipoNombreInput.focus();
+      } else {
+        lastTipoValue = tipoSelect.value;
+      }
+    });
+
+    newTipoCancelButton.addEventListener("click", closeNewTipoField);
+
+    newTipoConfirmButton.addEventListener("click", async () => {
+      const nombre = newTipoNombreInput.value.trim();
+      if (!nombre) {
+        newTipoError.textContent = "Escribe un nombre.";
+        newTipoError.hidden = false;
+        return;
+      }
+      newTipoConfirmButton.disabled = true;
+      try {
+        const created = await catalogosRepo.createTipoPrenda({
+          nombre,
+          categoria: newTipoCategoriaSelect.value,
+        });
+        const option = document.createElement("option");
+        option.value = created.id;
+        option.textContent = created.nombre;
+        tipoSelect.insertBefore(option, newTipoOption);
+        tipoSelect.value = created.id;
+        lastTipoValue = created.id;
+        closeNewTipoField();
+      } catch (error) {
+        newTipoError.textContent =
+          error.code === "23505"
+            ? `Ya existe un tipo llamado "${nombre}".`
+            : `No se pudo agregar: ${error.message}`;
+        newTipoError.hidden = false;
+      } finally {
+        newTipoConfirmButton.disabled = false;
+      }
+    });
   }
 
   const coloresField = checkboxGroup(
@@ -358,6 +469,7 @@ export function renderPrendaForm(
     field("Nombre", nombreInput, "prenda-nombre"),
     field("Categoria", categoriaSelect, "prenda-categoria"),
     field("Tipo de prenda", tipoSelect, "prenda-tipo"),
+    ...(newTipoField ? [newTipoField] : []),
     field("Colores", coloresField),
     field("Talla", tallaInput, "prenda-talla"),
     field("Fecha de ingreso", fechaInput, "prenda-fecha"),

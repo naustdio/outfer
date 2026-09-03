@@ -1022,6 +1022,39 @@ body:has(#app-nav:not([hidden])) #app {
   display: none;
 }
 
+.new-tipo-field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: calc(var(--space-2) * -1);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+}
+
+.new-tipo-field[hidden] {
+  display: none;
+}
+
+.new-tipo-field input,
+.new-tipo-field select {
+  flex: 1;
+  min-width: 140px;
+}
+
+.new-tipo-error {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-danger);
+}
+
+.new-tipo-error[hidden] {
+  display: none;
+}
+
 .foto-gallery-main {
   width: 100%;
   max-height: 420px;

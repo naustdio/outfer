@@ -75,6 +75,7 @@ const routes = [
         ...catalogs,
         prendasRepo,
         storageRepo,
+        catalogosRepo,
         onSaved: () => nav.navigate("/prendas"),
         onCancel: () => nav.navigate("/prendas"),
       });
@@ -89,6 +90,7 @@ const routes = [
         ...catalogs,
         prendasRepo,
         storageRepo,
+        catalogosRepo,
         onSaved: () => nav.navigate(`/prendas/${id}`),
         onCancel: () => nav.navigate(`/prendas/${id}`),
       });
