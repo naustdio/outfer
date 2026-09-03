@@ -33,6 +33,13 @@ export function createApp({
   // every existing createApp({ ... }) call (tests/unit/ui/app.test.js
   // included) keeps working unmodified without passing `nav`.
   nav: { show: showNav = () => {}, hide: hideNav = () => {} } = {},
+  // Local-dev convenience only (see public/config.example.js): when set,
+  // boot() signs in with these credentials instead of showing the login
+  // screen when there's no existing session. RLS/auth stay fully real --
+  // this is still a genuine signInWithPassword() call, just automated, so
+  // it only ever works against an account that actually exists. Never set
+  // from the committed config template; opt-in per developer machine.
+  devAutoLogin = null,
 }) {
   const client = injectedClient ?? createSupabaseClient(supabaseUrl, supabaseAnonKey);
   const auth = makeAuth(client);
@@ -55,6 +62,17 @@ export function createApp({
   async function boot() {
     const session = await auth.getSession();
     if (!session) {
+      if (devAutoLogin?.email && devAutoLogin?.password) {
+        try {
+          // Success fires onAuthStateChange("SIGNED_IN") below, which is
+          // what actually starts the router -- nothing further to do here.
+          await auth.signIn(devAutoLogin.email, devAutoLogin.password);
+          return;
+        } catch {
+          // Fall through to the normal login screen (e.g. the dev account
+          // doesn't exist yet on this machine's local Supabase stack).
+        }
+      }
       showLogin();
       return;
     }

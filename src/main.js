@@ -38,7 +38,8 @@ import { renderNavBar } from "./ui/components/nav-bar.js";
 // modules, no build step. Safe to ship as a static file: the Supabase anon
 // key is public by design (design.md "the anon key is public in a static
 // PWA -- a client-side gate protects nothing"; RLS is the real boundary).
-const { SUPABASE_URL, SUPABASE_ANON_KEY } = window.__CLOSET_APP_CONFIG__ ?? {};
+const { SUPABASE_URL, SUPABASE_ANON_KEY, DEV_AUTO_LOGIN_EMAIL, DEV_AUTO_LOGIN_PASSWORD } =
+  window.__CLOSET_APP_CONFIG__ ?? {};
 
 const root = document.getElementById("app");
 const client = createSupabaseClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -253,6 +254,10 @@ const app = createApp({
   client,
   root,
   router,
+  devAutoLogin:
+    DEV_AUTO_LOGIN_EMAIL && DEV_AUTO_LOGIN_PASSWORD
+      ? { email: DEV_AUTO_LOGIN_EMAIL, password: DEV_AUTO_LOGIN_PASSWORD }
+      : null,
   nav: {
     show: () => {
       navRoot.hidden = false;
