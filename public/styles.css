@@ -1410,6 +1410,90 @@ body:has(#app-nav:not([hidden])) #app {
   display: block;
 }
 
+/* ---------- Tip picker modal ---------- */
+
+.tip-picker-dialog {
+  width: min(500px, 92vw);
+  max-height: 80vh;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.tip-picker-dialog::backdrop {
+  background: rgba(20, 18, 16, 0.5);
+}
+
+.tip-picker-dialog h2 {
+  margin: 0;
+}
+
+.tip-picker-search {
+  width: 100%;
+}
+
+.tip-picker-body {
+  overflow-y: auto;
+  padding-right: var(--space-1);
+}
+
+.tip-picker-empty {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  text-align: center;
+  padding: var(--space-5) 0;
+}
+
+.tip-picker-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.tip-picker-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+}
+
+.tip-picker-item.is-selected {
+  border-color: var(--color-accent);
+  outline: 2px solid var(--color-accent);
+  outline-offset: -1px;
+}
+
+.tip-picker-item-text {
+  font-size: 14px;
+}
+
+.tip-picker-item-meta {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+}
+
+.tip-picker-footer {
+  display: flex;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
 /* ---------- Small screens ---------- */
 
 @media (max-width: 480px) {

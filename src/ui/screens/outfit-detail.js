@@ -2,6 +2,7 @@ import { toOutfitViewModel, toPrendaViewModel } from "../../domain/mappers.js";
 import { joinList } from "../../domain/format.js";
 import { renderEmptyState } from "../components/empty-state.js";
 import { openPrendaPicker } from "../components/prenda-picker.js";
+import { openTipPicker } from "../components/tip-picker.js";
 
 // outfit-composition "Derived Outfit Status" / "Derived Suggested Name" +
 // design.md "Refetch after mutation instead of client-side re-derivation":
@@ -20,6 +21,20 @@ export async function handleLinkGarment({ outfitsRepo, linksRepo, outfitId, pren
 export async function handleUnlinkGarment({ outfitsRepo, linksRepo, outfitId, prendaId }) {
   await linksRepo.unlinkOutfitPrenda(outfitId, prendaId);
   return outfitsRepo.getWithPrendas(outfitId);
+}
+
+// styling-tips "Dual Attachment" is bidirectional, but the outfit side is
+// now the primary entry point (tip-form.js's own attach section still works
+// too -- same write-then-refetch contract as handleLinkGarment above, never
+// a client-side splice of tipIds).
+export async function handleAttachTip({ outfitsRepo, linksRepo, outfitId, tipId }) {
+  await linksRepo.linkOutfitTip(outfitId, tipId);
+  return outfitsRepo.getLinkedTipIds(outfitId);
+}
+
+export async function handleDetachTip({ outfitsRepo, linksRepo, outfitId, tipId }) {
+  await linksRepo.unlinkOutfitTip(outfitId, tipId);
+  return outfitsRepo.getLinkedTipIds(outfitId);
 }
 
 // Renders a single outfit's detail: derived fields (estado, nombreSugerido
@@ -228,8 +243,9 @@ export async function renderOutfitDetail(
     actions.append(editButton, deleteButton);
     header.append(actions);
 
-    // Read-only reverse lookup -- attach/detach for tips lives on
-    // tip-form.js's dual-attachment UI (styling-tips), not here.
+    // Attach/detach lives here now (the outfit is the primary direction);
+    // tip-form.js's own attach section still works too -- styling-tips
+    // "Dual Attachment" stays bidirectional either way.
     const linkedTipSet = new Set(tipIds);
     const linkedTips = allTips.filter((t) => linkedTipSet.has(t.id));
 
@@ -246,11 +262,42 @@ export async function renderOutfitDetail(
     }
     for (const row of linkedTips) {
       const item = document.createElement("li");
-      item.textContent = row.tip;
-      item.addEventListener("click", () => onSelectTip?.(row.id));
+      const label = document.createElement("span");
+      label.textContent = row.tip;
+      label.addEventListener("click", () => onSelectTip?.(row.id));
+      const removeButton = document.createElement("button");
+      removeButton.type = "button";
+      removeButton.className = "btn btn-ghost";
+      removeButton.textContent = "Quitar";
+      removeButton.addEventListener("click", async () => {
+        removeButton.disabled = true;
+        const newTipIds = await handleDetachTip({ outfitsRepo, linksRepo, outfitId: id, tipId: row.id });
+        await draw({ outfit, prendaIds, tipIds: newTipIds, allPrendas, allTips, colores });
+      });
+      item.append(label, removeButton);
       tipsList.append(item);
     }
     tipsSection.append(tipsList);
+
+    const addTipButton = document.createElement("button");
+    addTipButton.type = "button";
+    addTipButton.className = "btn";
+    addTipButton.textContent = "+ Agregar tip";
+    addTipButton.addEventListener("click", async () => {
+      addTipButton.disabled = true;
+      try {
+        const picked = await openTipPicker({ tipsRepo, excludeIds: [...linkedTipSet] });
+        if (!picked || picked.length === 0) return;
+        let newTipIds = tipIds;
+        for (const row of picked) {
+          newTipIds = await handleAttachTip({ outfitsRepo, linksRepo, outfitId: id, tipId: row.id });
+        }
+        await draw({ outfit, prendaIds, tipIds: newTipIds, allPrendas, allTips, colores });
+      } finally {
+        addTipButton.disabled = false;
+      }
+    });
+    tipsSection.append(addTipButton);
 
     screen.append(header, ...(inspiracionImg ? [inspiracionImg] : []), fields, flatlay, tipsSection);
     container.append(screen);

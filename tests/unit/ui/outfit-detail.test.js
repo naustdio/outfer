@@ -57,7 +57,7 @@ describe("renderOutfitDetail: linked-tips reverse-lookup section (styling-tips)"
     const tipsHeading = [...container.querySelectorAll("h3")].find((h) => h.textContent === "Tips vinculados");
     expect(tipsHeading).not.toBeUndefined();
     const tipItems = [...tipsHeading.nextElementSibling.querySelectorAll("li")];
-    expect(tipItems.map((li) => li.textContent)).toEqual(["Combina bien con jeans"]);
+    expect(tipItems.map((li) => li.firstElementChild.textContent)).toEqual(["Combina bien con jeans"]);
   });
 
   it("shows an empty-state list when the outfit has no linked tips", async () => {
@@ -92,7 +92,8 @@ describe("renderOutfitDetail: linked-tips reverse-lookup section (styling-tips)"
     await renderOutfitDetail(container, "o1", { ...repos, onSelectTip });
 
     const tipsHeading = [...container.querySelectorAll("h3")].find((h) => h.textContent === "Tips vinculados");
-    tipsHeading.nextElementSibling.querySelector("li").click();
+    // Only the text label navigates -- the <li> also holds a "Quitar" button now.
+    tipsHeading.nextElementSibling.querySelector("li").firstElementChild.click();
     expect(onSelectTip).toHaveBeenCalledWith("t1");
   });
 });
