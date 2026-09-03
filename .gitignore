@@ -11,3 +11,4 @@ public/config.js
 .deploy-keys/
 dist-prod/
 closet-app-prod.zip
+.icon-work/
