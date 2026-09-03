@@ -18,7 +18,7 @@
 // this stays callable from plain Node (no ServiceWorkerGlobalScope) in
 // tests/unit/sw-routing.test.js; the real fetch listener below passes
 // self.location.origin at call time.
-const SHELL_CACHE = "closet-shell-v1";
+const SHELL_CACHE = "closet-shell-v2";
 
 // Deliberately NOT an exhaustive list of every JS module the app imports
 // (screens/data/domain files) -- design.md's target file tree keeps adding

@@ -45,6 +45,23 @@ export function createApp({
   const auth = makeAuth(client);
   const gate = createSessionGate({ auth, router });
 
+  // Supabase-js fires onAuthStateChange("SIGNED_IN") not only for a fresh
+  // sign-in, but also for a session already restored from storage at page
+  // load -- so boot()'s "session exists" branch and this listener's
+  // SIGNED_IN branch can both fire for the SAME load, each calling
+  // router.start(). Two renders of the same route race against its async
+  // data fetch (each clears+rebuilds `root`, so whichever finishes last
+  // wins the clear but both appends survive) -- this flag makes
+  // router.start() run at most once per "signed in" period, found by
+  // reproducing duplicated screen content in a real browser with an
+  // already-persisted session (not caught by any test).
+  let routerStarted = false;
+  function startRouterOnce(landingPath) {
+    if (routerStarted) return;
+    routerStarted = true;
+    router.start(landingPath);
+  }
+
   function showLogin() {
     // No onSignedIn navigation callback here on purpose: auth.signIn()
     // (called by renderLogin's submit handler) triggers Supabase's own
@@ -81,7 +98,7 @@ export function createApp({
     // through this branch, so the nav has to be shown here too, not just in
     // the SIGNED_IN handler below.
     showNav();
-    router.start();
+    startRouterOnce();
   }
 
   auth.onAuthStateChange((event) => {
@@ -98,10 +115,13 @@ export function createApp({
       // renders once on its own (via the hashchange its default-hash-set
       // triggers), so a follow-up navigate() call to that same default path
       // rendered it a second time -- caught by manually exercising this
-      // fix in a real browser, not by any test.
+      // fix in a real browser, not by any test. startRouterOnce() also
+      // absorbs the case where SIGNED_IN fires again for a session boot()
+      // already started the router for (see routerStarted's comment).
       showNav();
-      router.start(gate.consumeIntendedPath());
+      startRouterOnce(gate.consumeIntendedPath());
     } else if (event === "SIGNED_OUT") {
+      routerStarted = false;
       router.reset();
       showLogin();
     }

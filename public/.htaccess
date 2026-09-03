@@ -1,0 +1,17 @@
+# Hostinger's default static-file caching (public, max-age=604800) meant a
+# JS/CSS/HTML change could sit stale on the server-side/CDN layer for a week
+# regardless of any client-side cache-busting, on top of the app's own
+# service worker cache -- both had to agree a new deploy existed. This
+# overrides that default so every deploy is actually visible immediately;
+# public/manifest.json and this file's own siblings under public/icons,
+# public/vendor stay untouched (long-lived binary assets, fine to cache).
+<IfModule mod_headers.c>
+  <FilesMatch "\.(js|css|html|json)$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+</IfModule>
+<IfModule mod_expires.c>
+  <FilesMatch "\.(js|css|html|json)$">
+    ExpiresActive Off
+  </FilesMatch>
+</IfModule>
