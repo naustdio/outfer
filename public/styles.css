@@ -593,16 +593,33 @@ fieldset label {
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   background: var(--color-bg-raised);
-  padding: var(--space-3);
   cursor: pointer;
   font-size: 13px;
   font-weight: 600;
   transition: border-color 0.15s ease, transform 0.1s ease;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .style-module-tile:hover {
   border-color: var(--color-border-strong);
   transform: translateY(-1px);
+}
+
+.style-module-thumb {
+  aspect-ratio: 4 / 3;
+  background: var(--color-bg);
+}
+
+.style-module-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.style-module-tile-label {
+  padding: var(--space-3);
 }
 
 /* ---------- Attachment sections (tip-form.js) ---------- */
