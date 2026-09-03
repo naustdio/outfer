@@ -154,16 +154,21 @@ export async function renderPrendaDetail(
     item.className = "style-module-tile";
     item.addEventListener("click", () => onSelectOutfit?.(row.id));
 
+    const outfitName = outfitVm.titulo || outfitVm.nombreSugerido || "Outfit sin nombre";
+
     // Same "let the photo carry the tile" idea as outfit-detail.js's
     // flatlay cards -- imagen_inspiracion is either a raw http(s) URL or an
     // internal Storage path (see outfit-form.js's upload flow), only the
-    // latter needs signing. No image is the common case for older outfits,
-    // so the tile falls back to its original plain-text look.
+    // latter needs signing. When there's an image, it's the whole tile (no
+    // name label -- the photo grid IS the "how to style this" module); the
+    // name only shows as a fallback for outfits with no image, so the tile
+    // is never blank.
     if (row.imagen_inspiracion) {
+      item.title = outfitName;
       const thumb = document.createElement("div");
       thumb.className = "style-module-thumb";
       const img = document.createElement("img");
-      img.alt = "";
+      img.alt = outfitName;
       thumb.append(img);
       if (/^https?:\/\//i.test(row.imagen_inspiracion)) {
         img.src = row.imagen_inspiracion;
@@ -176,12 +181,12 @@ export async function renderPrendaDetail(
           .catch(() => thumb.remove());
       }
       item.append(thumb);
+    } else {
+      const label = document.createElement("span");
+      label.className = "style-module-tile-label";
+      label.textContent = outfitName;
+      item.append(label);
     }
-
-    const label = document.createElement("span");
-    label.className = "style-module-tile-label";
-    label.textContent = outfitVm.titulo || outfitVm.nombreSugerido || "Outfit sin nombre";
-    item.append(label);
 
     outfitsList.append(item);
   }
