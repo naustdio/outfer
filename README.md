@@ -130,3 +130,4 @@ tests/
   rls/           Row-Level-Security integration tests (real local DB)
 openspec/        Spec-Driven Development artifacts (proposals, specs, archive)
 ```
+- Update flow: push to `master`, and a cron job on the server (`*/5 * * * *`, `bash ~/sync-closet-app.sh`) pulls and re-syncs automatically within 5 minutes. No manual step needed.
